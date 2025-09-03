@@ -1,0 +1,87 @@
+{
+  "languages": {
+    "english": {
+      "name": "英語",
+      "difficultyLevels": {
+        "easy": {
+          "name": "初級",
+          "minLength": 3,
+          "maxLength": 5,
+          "words": [
+            "cat", "dog", "sun", "run", "fun", "hat", "bat", "car", "cup", "pen",
+            "book", "tree", "bird", "fish", "milk", "cake", "game", "play", "jump", "fast"
+          ]
+        },
+        "medium": {
+          "name": "中級",
+          "minLength": 6,
+          "maxLength": 8,
+          "words": [
+            "orange", "banana", "purple", "yellow", "garden", "window", "button", "summer", "winter", "spring",
+            "monkey", "rabbit", "dragon", "castle", "planet", "rocket", "cookie", "butter", "silver", "golden"
+          ]
+        },
+        "hard": {
+          "name": "上級",
+          "minLength": 9,
+          "maxLength": 12,
+          "words": [
+            "strawberry", "pineapple", "chocolate", "adventure", "wonderful", "beautiful", "dangerous", "mysterious",
+            "elephant", "butterfly", "mountain", "avalanche", "hurricane", "earthquake", "fireworks", "laboratory"
+          ]
+        },
+        "expert": {
+          "name": "達人",
+          "minLength": 13,
+          "maxLength": 20,
+          "words": [
+            "extraordinary", "magnificent", "sophisticated", "revolutionary", "unprecedented", "international",
+            "responsibility", "determination", "concentration", "understanding", "appreciation", "communication",
+            "intelligence", "imagination", "celebration", "organization", "destination", "recommendation"
+          ]
+        }
+      }
+    },
+    "japanese": {
+      "name": "日本語",
+      "difficultyLevels": {
+        "easy": {
+          "name": "初級",
+          "minLength": 2,
+          "maxLength": 3,
+          "words": [
+            "あめ", "いぬ", "うみ", "えき", "おか", "かさ", "きく", "くも", "けむ", "こと",
+            "さか", "しか", "すし", "せき", "そら", "たま", "ちず", "つき", "てが", "とり"
+          ]
+        },
+        "medium": {
+          "name": "中級",
+          "minLength": 4,
+          "maxLength": 5,
+          "words": [
+            "あさごはん", "ひるごはん", "ばんごはん", "でんわ", "じてんしゃ", "くるま", "でんしゃ", "ひこうき",
+            "ふね", "とけい", "ほん", "ざっし", "しんぶん", "てがみ", "はがき", "きって"
+          ]
+        },
+        "hard": {
+          "name": "上級",
+          "minLength": 6,
+          "maxLength": 8,
+          "words": [
+            "でんわばんごう", "ゆうびんきょく", "びょういん", "がっこう", "しょうがっこう", "ちゅうがっこう",
+            "こうこう", "だいがく", "ほんや", "ぎんこう", "スーパー", "デパート", "レストラン", "コーヒー"
+          ]
+        },
+        "expert": {
+          "name": "達人",
+          "minLength": 9,
+          "maxLength": 12,
+          "words": [
+            "しんかんせん", "くうこう", "ターミナル", "しんせつちかてつ", "とうきょうと", "おおさかふ",
+            "きょうとふ", "しずおかけん", "コンピューター", "スマートフォン", "タブレット", "テレビゲーム"
+          ]
+        }
+      }
+    }
+  }
+}
