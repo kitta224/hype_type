@@ -187,7 +187,7 @@ function draw() {
     ctx.fillStyle = '#666'; /* HP表示の色をグレーに */
     ctx.font = '16px Montserrat';
     ctx.textAlign = 'center';
-    ctx.fillText(uiTexts[currentLanguage].hp + player.hp, player.x, player.y + PLAYER_RADIUS + 20);
+    ctx.fillText(uiTexts[currentUiLanguage].hp + player.hp, player.x, player.y + PLAYER_RADIUS + 20);
 }
 
 // 更新
