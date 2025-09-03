@@ -3,6 +3,7 @@ const ctx = canvas.getContext('2d');
 const startScreen = document.getElementById('startScreen');
 const startButton = document.getElementById('startButton');
 const languageSelect = document.getElementById('languageSelect');
+const uiLanguageSelect = document.getElementById('uiLanguageSelect');
 const difficultySelect = document.getElementById('difficultySelect');
 const progressiveDifficulty = document.getElementById('progressiveDifficulty');
 const resolutionSelect = document.getElementById('resolutionSelect');
@@ -38,7 +39,8 @@ let bullets = [];
 
 // 単語リスト管理
 let wordLists = {};
-let currentLanguage = 'english';
+let currentLanguage = 'english'; // タイプ言語
+let currentUiLanguage = 'japanese'; // 表示言語
 let currentDifficulty = 'easy';
 let useProgressiveDifficulty = true;
 let currentWordList = [];
@@ -362,7 +364,7 @@ document.addEventListener('keydown', (e) => {
 // イベントリスナー
 // UIテキストを現在の言語で更新する関数
 function updateUIText() {
-    const texts = uiTexts[currentLanguage];
+    const texts = uiTexts[currentUiLanguage];
     document.querySelector('h1').textContent = texts.title;
     document.querySelector('h3') && (document.querySelector('h3').textContent = texts.subtitle);
     document.getElementById('languageLabel').textContent = texts.languageLabel;
@@ -381,14 +383,24 @@ function updateUIText() {
 }
 
 // 言語切替時にUI更新
+
 languageSelect.addEventListener('change', () => {
     currentLanguage = languageSelect.value;
     updateCurrentWordList();
+});
+
+uiLanguageSelect.addEventListener('change', () => {
+    currentUiLanguage = uiLanguageSelect.value;
     updateUIText();
 });
 
 // 初期表示時にもUI更新
-window.addEventListener('DOMContentLoaded', updateUIText);
+window.addEventListener('DOMContentLoaded', () => {
+    // セレクトボックス初期値反映
+    languageSelect.value = currentLanguage;
+    uiLanguageSelect.value = currentUiLanguage;
+    updateUIText();
+});
 difficultySelect.addEventListener('change', () => {
     currentDifficulty = difficultySelect.value;
     updateCurrentWordList();
