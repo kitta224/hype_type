@@ -443,7 +443,7 @@ const uiTexts = {
     },
     japanese: {
         title: "Hype_Type",
-        subtitle: "武器化するあなたのWPM",
+        subtitle: "あなたのタイプ速度を武器に",
         languageLabel: "タイプ時に使用する言語を選択:",
         languageEnglish: "英語",
         languageJapanese: "日本語",
