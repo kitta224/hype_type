@@ -346,6 +346,16 @@ document.addEventListener('keydown', (e) => {
     if (matchedEnemy) {
         fireBurstAtEnemy(matchedEnemy);
         typedWord = '';
+        // タイプ完了した敵の単語を再抽選
+        let availableWords = currentWordList.filter(word => !usedWords.includes(word));
+        if (availableWords.length === 0) {
+            usedWords = [];
+            availableWords = currentWordList;
+        }
+        const newWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+        usedWords.push(newWord);
+        matchedEnemy.word = newWord;
+        matchedEnemy.displayWord = newWord;
     }
 }); 
 
