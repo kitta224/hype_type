@@ -260,9 +260,9 @@ function draw() {
     });
 
     // ウェーブ情報表示
-    const waveNum = wave.getCurrentWave();
-    const kills = wave.getKillsThisWave();
-    const need = wave.getKillsToAdvance();
+    const waveNum = (wave && typeof wave.getCurrentWave === 'function') ? wave.getCurrentWave() : 1;
+    const kills = (wave && typeof wave.getKillsThisWave === 'function') ? wave.getKillsThisWave() : 0;
+    const need = (wave && typeof wave.getKillsToAdvance === 'function') ? wave.getKillsToAdvance() : 10;
     ctx.fillStyle = colors.hpText;
     ctx.font = '18px Montserrat';
     ctx.textAlign = 'left';

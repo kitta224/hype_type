@@ -76,3 +76,15 @@ export default {
     getKillsToAdvance,
     reset
 };
+
+// 互換のための named export も追加
+export {
+    init,
+    getCurrentWave,
+    getKillsThisWave,
+    getKillsToAdvance,
+    onEnemyDefeated,
+    getEnemyHPForWave,
+    getAllowedDifficulties,
+    reset
+};
