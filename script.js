@@ -22,10 +22,14 @@ function getCanvasColors() {
     const textSub = (cs.getPropertyValue('--text-sub') || '#555').trim();
 
     // 指定されたルールに従う色
+    const isDark = document.body.classList.contains('dark-theme');
     return {
-        enemy: accent || '#ff9800',
-        enemyText: '#ffffff',
-        player: '#ffffff',
+        // ライト時は赤系、ダーク時は暗めのオレンジ（CSSの --accent があればそれを優先）
+        enemy: isDark ? (accent || '#cc7000') : '#a2565f',
+        // 敵の上の文字はダーク時は白、ライト時は黒
+        enemyText: isDark ? '#ffffff' : '#000000',
+        // 自機はダーク時に白、ライト時は従来のグレー
+        player: isDark ? '#ffffff' : '#666666',
         hpText: textMain,
         bullet: '#A9A9A9',
         canvasBg: canvasBg
