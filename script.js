@@ -1,6 +1,7 @@
 import { Enemy, spawnEnemy as spawnEnemyModule } from './enemy.js';
 import { Bullet } from './bullet.js';
 import { loadWordLists, getCurrentWordList } from './wordManager.js';
+import wave from './wave.js';
 
 // テーマ初期化
 function setTheme(isDark) {
@@ -148,7 +149,7 @@ let wordLists = {};
 let currentLanguage = 'english'; // タイプ言語
 let currentUiLanguage = 'japanese'; // 表示言語
 let currentDifficulty = 'easy';
-let useProgressiveDifficulty = true;
+let useProgressiveDifficulty = false; // 廃止: ウェーブシステムで管理
 let currentWordList = [];
 let score = 0;
 let enemiesDefeated = 0;
@@ -169,20 +170,23 @@ async function loadAndSetWordLists() {
 }
 
 function updateCurrentWordList() {
-    currentWordList = getCurrentWordList(wordLists, currentLanguage, currentDifficulty);
+    // generate current word pool based on wave allowed difficulties
+    const allowed = wave.getAllowedDifficulties();
+    // merge words from allowed difficulties (preserve order)
+    currentWordList = [];
+    if (wordLists.languages && wordLists.languages[currentLanguage]) {
+        const diffs = wordLists.languages[currentLanguage].difficultyLevels || {};
+        allowed.forEach(d => {
+            const data = diffs[d];
+            if (data && Array.isArray(data.words)) {
+                currentWordList.push(...data.words);
+            }
+        });
+    }
 }
 
 // 難易度を上昇させる
-function increaseDifficulty() {
-    if (!useProgressiveDifficulty) return;
-    
-    const currentIndex = difficultyOrder.indexOf(currentDifficulty);
-    if (currentIndex < difficultyOrder.length - 1) {
-        currentDifficulty = difficultyOrder[currentIndex + 1];
-        difficultySelect.value = currentDifficulty;
-        updateCurrentWordList();
-    }
-}
+// difficulty auto-increase removed; wave system controls enemy toughness and available words
 
 // 敵を生成
 function spawnEnemyWrapper() {
@@ -197,7 +201,10 @@ function spawnEnemyWrapper() {
     }
     const word = availableWords[Math.floor(Math.random() * availableWords.length)];
     usedWords.push(word);
-    const enemy = spawnEnemyModule(canvas, word, ENEMY_MAX_HP);
+    // HP は wave システムに従って算出
+    const hpForWave = wave.getEnemyHPForWave(ENEMY_MAX_HP);
+    const enemy = spawnEnemyModule(canvas, word, hpForWave);
+    enemy.maxHp = hpForWave;
     // テーマの色を適用
     const colors = getCanvasColors();
     enemy.color = colors.enemy;
@@ -232,7 +239,34 @@ function draw() {
         ctx.globalAlpha = 0.9;
         ctx.fillText(enemy.displayWord || enemy.word, enemy.x, enemy.y - ENEMY_RADIUS - 5);
         ctx.globalAlpha = 1.0;
+        // HPバー描画（敵の上に小さなバー）
+        if (typeof enemy.hp === 'number' && typeof enemy.maxHp === 'number') {
+            const barWidth = 40;
+            const barHeight = 6;
+            const x = enemy.x - barWidth / 2;
+            const y = enemy.y - ENEMY_RADIUS - 18;
+            // 背景
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(x, y, barWidth, barHeight);
+            // 前景
+            const hpRatio = Math.max(0, enemy.hp) / Math.max(1, enemy.maxHp);
+            ctx.fillStyle = '#ff4444';
+            ctx.fillRect(x, y, barWidth * hpRatio, barHeight);
+            // 枠
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, barWidth, barHeight);
+        }
     });
+
+    // ウェーブ情報表示
+    const waveNum = wave.getCurrentWave();
+    const kills = wave.getKillsThisWave();
+    const need = wave.getKillsToAdvance();
+    ctx.fillStyle = colors.hpText;
+    ctx.font = '18px Montserrat';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Wave: ${waveNum}  Kills: ${kills}/${need}`, 20, 30);
 
     // 弾描画
     bullets.forEach(bullet => {
@@ -300,13 +334,10 @@ function update() {
                 if (enemy.hp <= 0) {
                     enemies = enemies.filter(e => e !== enemy); // 敵を削除
                     usedWords = usedWords.filter(w => w !== enemy.word); // 使用済み単語から削除
-                    enemiesDefeated++;
-                    score += 10;
-                    
-                    // 一定数の敵を倒したら難易度を上昇
-                    if (enemiesDefeated % 10 === 0) {
-                        increaseDifficulty();
-                    }
+                        enemiesDefeated++;
+                        score += 10;
+                        // wave管理に通知
+                        wave.onEnemyDefeated();
                 }
             }
         });
@@ -323,9 +354,12 @@ function update() {
 function initializeGame() {
     currentLanguage = languageSelect.value;
     currentDifficulty = difficultySelect.value;
-    useProgressiveDifficulty = progressiveDifficulty.checked;
+    // progressiveDifficulty は廃止だがチェックボックスはUIに残るため無視
     enemiesDefeated = 0;
     score = 0;
+
+    // wave 初期化
+    wave.init({ startWave: 1 });
 
     // 解像度設定
     const selectedResolution = resolutionSelect.value;
