@@ -126,7 +126,7 @@ const PLAYER_RADIUS = 15;
 const ENEMY_RADIUS = 5;
 const BULLET_RADIUS = 5;
 const PLAYER_MAX_HP = 100;
-const ENEMY_MAX_HP = 3; // 初期値は3回攻撃で倒れる
+const ENEMY_MAX_HP = 30; // 初期値（10倍スケール）：3 -> 30
 const BULLET_SPEED = 10;
 const ENEMY_SPAWN_INTERVAL = 2000; // 敵の出現間隔 (ms)
 
@@ -137,6 +137,8 @@ let player = {
     hp: PLAYER_MAX_HP,
     color: '#666' /* プレイヤーの色をグレーに */
 };
+// プレイヤーの攻撃力（10 が基準、弾の damage は attackPower）
+player.attackPower = 10;
 
 // 敵
 let enemies = [];
@@ -203,6 +205,7 @@ function spawnEnemyWrapper() {
     usedWords.push(word);
     // HP は wave システムに従って算出
     const hpForWave = wave.getEnemyHPForWave(ENEMY_MAX_HP);
+    // デフォルト値を10倍にしたため、そのまま渡す
     const enemy = spawnEnemyModule(canvas, word, hpForWave);
     enemy.maxHp = hpForWave;
     // テーマの色を適用
@@ -340,15 +343,16 @@ function update() {
         enemies.forEach(enemy => {
             const dist = Math.sqrt(Math.pow(bullet.x - enemy.x, 2) + Math.pow(bullet.y - enemy.y, 2));
             if (dist < BULLET_RADIUS + ENEMY_RADIUS) {
-                enemy.hp--;
+                const dmg = (typeof bullet.damage === 'number') ? bullet.damage : 1;
+                enemy.hp -= dmg;
                 bullets = bullets.filter(b => b !== bullet); // 弾を削除
                 if (enemy.hp <= 0) {
                     enemies = enemies.filter(e => e !== enemy); // 敵を削除
                     usedWords = usedWords.filter(w => w !== enemy.word); // 使用済み単語から削除
-                        enemiesDefeated++;
-                        score += 10;
-                        // wave管理に通知
-                        wave.onEnemyDefeated();
+                    enemiesDefeated++;
+                    score += 10;
+                    // wave管理に通知
+                    wave.onEnemyDefeated();
                 }
             }
         });
@@ -418,8 +422,11 @@ function fireBurstAtEnemy(targetEnemy) {
                 player.x,
                 player.y,
                 Math.cos(angle) * BULLET_SPEED,
-                Math.sin(angle) * BULLET_SPEED
+                Math.sin(angle) * BULLET_SPEED,
+                player.attackPower,
+                colors.bullet
             );
+            // new Bullet signature: (x,y,vx,vy,damage,color)
             b.color = colors.bullet;
             bullets.push(b);
         }, i * 100);
