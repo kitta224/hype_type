@@ -1,3 +1,7 @@
+import { Enemy, spawnEnemy as spawnEnemyModule } from './enemy.js';
+import { Bullet } from './bullet.js';
+import { loadWordLists, getCurrentWordList } from './wordManager.js';
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const startScreen = document.getElementById('startScreen');
@@ -56,36 +60,14 @@ let currentDifficultyLevel = 0;
 const difficultyOrder = ['easy', 'medium', 'hard', 'expert'];
 
 // 単語リストを読み込む
-async function loadWordLists() {
-    try {
-        const response = await fetch('wordLists.json');
-        wordLists = await response.json();
-        updateCurrentWordList();
-    } catch (error) {
-        console.error('単語リストの読み込みに失敗しました:', error);
-        // フォールバック用の単語リスト
-        wordLists = {
-            languages: {
-                english: {
-                    difficultyLevels: {
-                        easy: { words: ["cat", "dog", "sun", "run", "fun"] },
-                        medium: { words: ["apple", "banana", "orange", "grape"] },
-                        hard: { words: ["strawberry", "pineapple", "chocolate"] },
-                        expert: { words: ["extraordinary", "magnificent", "sophisticated"] }
-                    }
-                }
-            }
-        };
-        updateCurrentWordList();
-    }
+// 単語リストを読み込む
+async function loadAndSetWordLists() {
+    wordLists = await loadWordLists();
+    updateCurrentWordList();
 }
 
-// 現在の単語リストを更新
 function updateCurrentWordList() {
-    if (wordLists.languages && wordLists.languages[currentLanguage]) {
-        const difficultyData = wordLists.languages[currentLanguage].difficultyLevels[currentDifficulty];
-        currentWordList = difficultyData ? difficultyData.words : [];
-    }
+    currentWordList = getCurrentWordList(wordLists, currentLanguage, currentDifficulty);
 }
 
 // 難易度を上昇させる
@@ -101,50 +83,20 @@ function increaseDifficulty() {
 }
 
 // 敵を生成
-function spawnEnemy() {
-    const side = Math.floor(Math.random() * 4); // 0:上, 1:右, 2:下, 3:左
-    let x, y;
-
-    switch (side) {
-        case 0: // 上
-            x = Math.random() * canvas.width;
-            y = -ENEMY_RADIUS;
-            break;
-        case 1: // 右
-            x = canvas.width + ENEMY_RADIUS;
-            y = Math.random() * canvas.height;
-            break;
-        case 2: // 下
-            x = Math.random() * canvas.width;
-            y = canvas.height + ENEMY_RADIUS;
-            break;
-        case 3: // 左
-            x = -ENEMY_RADIUS;
-            y = Math.random() * canvas.height;
-            break;
-    }
-
+function spawnEnemyWrapper() {
     if (currentWordList.length === 0) {
         console.warn('単語リストが空です');
         return;
     }
-
     let availableWords = currentWordList.filter(word => !usedWords.includes(word));
     if (availableWords.length === 0) {
-        usedWords = []; // 全ての単語が使用済みの場合、リセット
+        usedWords = [];
         availableWords = currentWordList;
     }
-
     const word = availableWords[Math.floor(Math.random() * availableWords.length)];
     usedWords.push(word);
-    enemies.push({
-        x: x,
-        y: y,
-        hp: ENEMY_MAX_HP,
-        word: word,
-        typed: '',
-        color: '#808080' /* 敵の色を画像に合わせる */
-    });
+    const enemy = spawnEnemyModule(canvas, word, ENEMY_MAX_HP);
+    enemies.push(enemy);
 }
 
 // 描画
@@ -196,7 +148,7 @@ function update() {
 
     // 敵の出現
     if (now - lastEnemySpawnTime > ENEMY_SPAWN_INTERVAL) {
-        spawnEnemy();
+        spawnEnemyWrapper();
         lastEnemySpawnTime = now;
     }
 
@@ -304,13 +256,12 @@ function fireBurstAtEnemy(targetEnemy) {
     const angle = Math.atan2(targetEnemy.y - player.y, targetEnemy.x - player.x);
     for (let i = 0; i < 3; i++) {
         setTimeout(() => {
-            bullets.push({
-                x: player.x,
-                y: player.y,
-                vx: Math.cos(angle) * BULLET_SPEED,
-                vy: Math.sin(angle) * BULLET_SPEED,
-                color: '#A9A9A9'
-            });
+            bullets.push(new Bullet(
+                player.x,
+                player.y,
+                Math.cos(angle) * BULLET_SPEED,
+                Math.sin(angle) * BULLET_SPEED
+            ));
         }, i * 100);
     }
 }
@@ -432,7 +383,7 @@ startButton.addEventListener('click', () => {
 });
 
 // 初期化
-loadWordLists();
+loadAndSetWordLists();
 
 // 言語リソース定義
 const uiTexts = {
