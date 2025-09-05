@@ -239,23 +239,22 @@ function draw() {
         ctx.globalAlpha = 0.9;
         ctx.fillText(enemy.displayWord || enemy.word, enemy.x, enemy.y - ENEMY_RADIUS - 5);
         ctx.globalAlpha = 1.0;
-        // HPバー描画（敵の上に小さなバー）
+        // HPバー描画（敵の下に小さく表示）
         if (typeof enemy.hp === 'number' && typeof enemy.maxHp === 'number') {
-            const barWidth = 40;
-            const barHeight = 6;
-            const x = enemy.x - barWidth / 2;
-            const y = enemy.y - ENEMY_RADIUS - 18;
-            // 背景
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.fillRect(x, y, barWidth, barHeight);
-            // 前景
             const hpRatio = Math.max(0, enemy.hp) / Math.max(1, enemy.maxHp);
-            ctx.fillStyle = '#ff4444';
-            ctx.fillRect(x, y, barWidth * hpRatio, barHeight);
-            // 枠
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x, y, barWidth, barHeight);
+            // 満タン時は非表示
+            if (hpRatio < 1) {
+                const barFullWidth = 36; // 基準幅
+                const barHeight = 4; // 細い棒
+                // 中心から両側に減る見た目を作るため、表示幅は比率に応じて中央揃え
+                const displayWidth = barFullWidth * hpRatio;
+                const x = enemy.x - displayWidth / 2;
+                const y = enemy.y + ENEMY_RADIUS + 8; // 敵の下に移動
+                ctx.globalAlpha = 0.95;
+                ctx.fillStyle = '#ffffff'; // 白
+                ctx.fillRect(x, y, displayWidth, barHeight);
+                ctx.globalAlpha = 1.0;
+            }
         }
     });
 
