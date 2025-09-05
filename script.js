@@ -450,19 +450,18 @@ document.addEventListener('keydown', (e) => {
         });
     } else {
         // 現在のバッファではどの敵にもマッチしない -> 即リセット
-        // ただし、元の入力（prevTyped を含め）から右側のサフィックスが
-        // 別の敵にマッチする場合、それを採用する。
+        // ただし、更新後の入力（typedWord）のサフィックスが別の敵にマッチする
+        // 可能性があるため、それらを試して即座に遷移できるようにする。
         resetAllEnemyProgress();
 
-        // 採用ルール: prevTyped 全体を走査して左から1文字ずつ削る（右側サフィックスを試す）
-        // 例: prevTyped = "abc" -> 試す順序: "bc", "c"
+        // 採用ルール: typedWord 全体を走査して左から1文字ずつ削る（右側サフィックスを試す）
+        // 例: typedWord = "abc" -> 試す順序: "bc", "c"
         let adopted = false;
-        for (let i = 1; i < prevTyped.length; i++) {
-            const suffix = prevTyped.slice(i);
+        for (let i = 1; i < typedWord.length; i++) {
+            const suffix = typedWord.slice(i);
             const suffMatches = findMatchingEnemiesByPrefix(suffix);
             if (suffMatches.length > 0) {
                 const target = nearestEnemy(suffMatches);
-                typedWord = suffix;
                 // 他はリセット、ターゲットだけ進行
                 enemies.forEach(enemy => {
                     if (enemy === target) {
@@ -473,6 +472,8 @@ document.addEventListener('keydown', (e) => {
                         enemy.displayWord = enemy.word;
                     }
                 });
+                // バッファをサフィックスに置き換え（即遷移）
+                typedWord = suffix;
                 adopted = true;
                 break;
             }
