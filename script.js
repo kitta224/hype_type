@@ -245,27 +245,39 @@ function draw() {
             // 満タン時は非表示
             if (hpRatio < 1) {
                 const barFullWidth = 36; // 基準幅
-                const barHeight = 4; // 細い棒
-                // 中心から両側に減る見た目を作るため、表示幅は比率に応じて中央揃え
+                const barHeight = 2; // さらに細く
                 const displayWidth = barFullWidth * hpRatio;
                 const x = enemy.x - displayWidth / 2;
-                const y = enemy.y + ENEMY_RADIUS + 8; // 敵の下に移動
+                const y = enemy.y + ENEMY_RADIUS + 6; // 敵の下に移動
                 ctx.globalAlpha = 0.95;
                 ctx.fillStyle = '#ffffff'; // 白
-                ctx.fillRect(x, y, displayWidth, barHeight);
+                // 角丸長方形を描く
+                const radius = barHeight / 2;
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + displayWidth - radius, y);
+                ctx.quadraticCurveTo(x + displayWidth, y, x + displayWidth, y + radius);
+                ctx.lineTo(x + displayWidth, y + barHeight - radius);
+                ctx.quadraticCurveTo(x + displayWidth, y + barHeight, x + displayWidth - radius, y + barHeight);
+                ctx.lineTo(x + radius, y + barHeight);
+                ctx.quadraticCurveTo(x, y + barHeight, x, y + barHeight - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+                ctx.fill();
                 ctx.globalAlpha = 1.0;
             }
         }
     });
 
-    // ウェーブ情報表示
+    // ウェーブ情報表示（上部中央）
     const waveNum = (wave && typeof wave.getCurrentWave === 'function') ? wave.getCurrentWave() : 1;
     const kills = (wave && typeof wave.getKillsThisWave === 'function') ? wave.getKillsThisWave() : 0;
     const need = (wave && typeof wave.getKillsToAdvance === 'function') ? wave.getKillsToAdvance() : 10;
     ctx.fillStyle = colors.hpText;
     ctx.font = '18px Montserrat';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Wave: ${waveNum}  Kills: ${kills}/${need}`, 20, 30);
+    ctx.textAlign = 'center';
+    ctx.fillText(`Wave: ${waveNum}  Kills: ${kills}/${need}`, canvas.width / 2, 28);
 
     // 弾描画
     bullets.forEach(bullet => {
