@@ -56,6 +56,66 @@ body.dark-theme {
     min-width: 180px;
 }
 
+/* ラベルとセレクトをテーマに沿わせる（開始画面の全要素に適用） */
+.langSelectBox label,
+.langSelectBox select,
+.langSelectBox .langLabel {
+    color: var(--text-sub);
+}
+
+/* 明示的に start-screen の各ラベルをテーマ化 */
+#languageLabel,
+#uiLanguageLabel,
+#typingLanguageSelection label,
+#uiLanguageSelection label,
+#difficultySelection label,
+#progressiveMode label,
+#resolutionSelection label {
+    color: var(--text-sub);
+}
+
+/* start screen subtitle */
+#startScreen h3 {
+    color: var(--text-sub);
+}
+
+/* 汎用のセレクトスタイル（すべてのselectに適用） */
+select {
+    padding: 10px 15px;
+    font-size: 16px;
+    border: 2px solid var(--border-main);
+    border-radius: 8px;
+    background-color: var(--bg-panel);
+    color: var(--text-main);
+    cursor: pointer;
+    width: 200px;
+    text-align: center;
+}
+
+/* テーマ切替チェックボックスのアクセントカラー */
+input[type="checkbox"] {
+    accent-color: var(--accent);
+}
+
+#themeToggleRow label {
+    color: var(--text-main);
+    font-size: 16px;
+}
+
+#themeToggleRow {
+    margin-top: 20px;
+}
+
+#themeToggleRow label {
+    cursor: pointer;
+    user-select: none;
+}
+
+#themeToggleRow input[type="checkbox"] {
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
 #startScreen h1 {
     color: var(--accent);
     margin-bottom: 30px;

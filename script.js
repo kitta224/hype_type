@@ -1,4 +1,6 @@
-const themeToggle = document.getElementById('themeToggle');
+import { Enemy, spawnEnemy as spawnEnemyModule } from './enemy.js';
+import { Bullet } from './bullet.js';
+import { loadWordLists, getCurrentWordList } from './wordManager.js';
 
 // テーマ初期化
 function setTheme(isDark) {
@@ -9,18 +11,62 @@ function setTheme(isDark) {
     }
 }
 
-// トグルイベント
-themeToggle && themeToggle.addEventListener('change', (e) => {
-    setTheme(e.target.checked);
+// テーマ要素の初期化はDOMが準備されてから行う
+// ユーザー設定をlocalStorageに保存するキー
+const THEME_KEY = 'hype_type_theme'; // values: 'dark' | 'light' | 'system'
+
+function applyThemeFromPreference(pref) {
+    if (pref === 'dark') return setTheme(true);
+    if (pref === 'light') return setTheme(false);
+    // system
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return setTheme(prefersDark);
+}
+
+// DOM準備時に要素を取得し、初期状態・イベントを設定
+window.addEventListener('DOMContentLoaded', () => {
+    const themeToggle = document.getElementById('themeToggle');
+    const saved = localStorage.getItem(THEME_KEY) || 'system';
+
+    // システムの変化を監視（systemモード時のみ使用）
+    let mq = null;
+    function mqHandler(e) {
+        const currentPref = localStorage.getItem(THEME_KEY) || 'system';
+        if (currentPref === 'system') {
+            setTheme(e.matches);
+            if (themeToggle) themeToggle.checked = e.matches;
+        }
+    }
+
+    if (window.matchMedia) {
+        mq = window.matchMedia('(prefers-color-scheme: dark)');
+        mq.addEventListener ? mq.addEventListener('change', mqHandler) : mq.addListener(mqHandler);
+    }
+
+    // 初期反映
+    applyThemeFromPreference(saved);
+    if (themeToggle) {
+        // checkbox は現在の実際の表示状態に合わせておく
+        themeToggle.checked = document.body.classList.contains('dark-theme');
+
+        // ユーザー操作で明示的に切り替える場合はlocalStorageに保存
+        themeToggle.addEventListener('change', (e) => {
+            const isDark = !!e.target.checked;
+            setTheme(isDark);
+            // 明示的な指定に切り替える
+            localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+        });
+    }
 });
 
-// ページ初期表示時にトグル状態反映
-window.addEventListener('DOMContentLoaded', () => {
-    setTheme(themeToggle && themeToggle.checked);
+// ページ読み込み後に、もしユーザーが 'system' にしていてシステム設定がdarkならcheckboxの状態を合わせる
+window.addEventListener('load', () => {
+    const themeToggle = document.getElementById('themeToggle');
+    const saved = localStorage.getItem(THEME_KEY) || 'system';
+    if (themeToggle && saved === 'system' && window.matchMedia) {
+        themeToggle.checked = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
 });
-import { Enemy, spawnEnemy as spawnEnemyModule } from './enemy.js';
-import { Bullet } from './bullet.js';
-import { loadWordLists, getCurrentWordList } from './wordManager.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
