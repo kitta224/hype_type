@@ -140,6 +140,44 @@ let player = {
 // プレイヤーの攻撃力（10 が基準、弾の damage は attackPower）
 player.attackPower = 10;
 
+// デバッグ用 API: ブラウザのコンソールから以下を呼べます
+// window.hypeType.cmd('debug on') / window.hypeType.cmd('debug off')
+// window.hypeType.cmd('logDamage off') など
+window.hypeType = window.hypeType || {};
+window.hypeType.debug = window.hypeType.debug || false;
+window.hypeType.logDamage = (typeof window.hypeType.logDamage === 'boolean') ? window.hypeType.logDamage : true;
+window.hypeType.setDebug = function(val) {
+    this.debug = !!val;
+    console.info('[hypeType] debug =', this.debug);
+};
+window.hypeType.setLogDamage = function(val) {
+    this.logDamage = !!val;
+    console.info('[hypeType] logDamage =', this.logDamage);
+};
+window.hypeType.cmd = function(cmd) {
+    if (!cmd) return console.log('hypeType.cmd: commands: debug on|off, logDamage on|off, status');
+    const parts = String(cmd).trim().split(/\s+/);
+    const name = parts[0];
+    const arg = (parts[1] || '').toLowerCase();
+    if (name === 'debug') {
+        if (arg === 'on') this.setDebug(true);
+        else if (arg === 'off') this.setDebug(false);
+        else console.log('usage: debug on|off');
+        return;
+    }
+    if (name === 'logDamage') {
+        if (arg === 'on') this.setLogDamage(true);
+        else if (arg === 'off') this.setLogDamage(false);
+        else console.log('usage: logDamage on|off');
+        return;
+    }
+    if (name === 'status') {
+        console.log('[hypeType] status', { debug: this.debug, logDamage: this.logDamage });
+        return;
+    }
+    console.log('hypeType.cmd: unknown command. supported: debug, logDamage, status');
+};
+
 // 敵
 let enemies = [];
 
@@ -345,6 +383,12 @@ function update() {
             if (dist < BULLET_RADIUS + ENEMY_RADIUS) {
                 const dmg = (typeof bullet.damage === 'number') ? bullet.damage : 1;
                 enemy.hp -= dmg;
+
+                // デバッグ出力
+                if (window.hypeType && window.hypeType.debug && window.hypeType.logDamage) {
+                    console.log(`[hypeType] ${new Date().toLocaleTimeString()} - Hit: '${enemy.word}' dmg=${dmg} hp_after=${Math.max(0, enemy.hp)} maxHp=${enemy.maxHp}`, { enemy, bullet, playerAttack: player.attackPower });
+                }
+
                 bullets = bullets.filter(b => b !== bullet); // 弾を削除
                 if (enemy.hp <= 0) {
                     enemies = enemies.filter(e => e !== enemy); // 敵を削除
@@ -353,6 +397,10 @@ function update() {
                     score += 10;
                     // wave管理に通知
                     wave.onEnemyDefeated();
+
+                    if (window.hypeType && window.hypeType.debug) {
+                        console.log('[hypeType] Enemy defeated:', enemy.word);
+                    }
                 }
             }
         });
@@ -429,6 +477,10 @@ function fireBurstAtEnemy(targetEnemy) {
             // new Bullet signature: (x,y,vx,vy,damage,color)
             b.color = colors.bullet;
             bullets.push(b);
+
+            if (window.hypeType && window.hypeType.debug) {
+                console.log(`[hypeType] Fired at '${targetEnemy.word}' damage=${player.attackPower}`, { targetEnemy, bullet: b });
+            }
         }, i * 100);
     }
 }
