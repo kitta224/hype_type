@@ -72,5 +72,7 @@ export default {
     onEnemyDefeated,
     getEnemyHPForWave,
     getAllowedDifficulties,
+    getKillsThisWave,
+    getKillsToAdvance,
     reset
 };
