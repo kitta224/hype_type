@@ -377,6 +377,9 @@ function initializeGame() {
     if (selectedResolution === 'default') {
         currentCanvasWidth = window.innerWidth * 0.8;
         currentCanvasHeight = window.innerHeight * 0.8;
+    } else if (selectedResolution === '100p') {
+        currentCanvasWidth = window.innerWidth;
+        currentCanvasHeight = window.innerHeight;
     } else {
         const [width, height] = selectedResolution.split('x').map(Number);
         currentCanvasWidth = width;
