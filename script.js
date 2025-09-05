@@ -1,3 +1,23 @@
+const themeToggle = document.getElementById('themeToggle');
+
+// テーマ初期化
+function setTheme(isDark) {
+    if (isDark) {
+        document.body.classList.add('dark-theme');
+    } else {
+        document.body.classList.remove('dark-theme');
+    }
+}
+
+// トグルイベント
+themeToggle && themeToggle.addEventListener('change', (e) => {
+    setTheme(e.target.checked);
+});
+
+// ページ初期表示時にトグル状態反映
+window.addEventListener('DOMContentLoaded', () => {
+    setTheme(themeToggle && themeToggle.checked);
+});
 import { Enemy, spawnEnemy as spawnEnemyModule } from './enemy.js';
 import { Bullet } from './bullet.js';
 import { loadWordLists, getCurrentWordList } from './wordManager.js';
