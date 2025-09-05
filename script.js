@@ -378,11 +378,48 @@ function fireBurstAtEnemy(targetEnemy) {
     }
 }
 
-// 入力処理
-// 入力受付フラグ
+// 入力処理（改良版）
+// 各敵ごとに進行度を持ち、最寄りのマッチする敵のみが進行する。
+// 間違いがあれば即リセットし、そのリセット中に元の入力のサフィックスが
+// 他の敵にマッチする場合はそちらに遷移して進行を継続する。
 let inputEnabled = true;
+
+function findMatchingEnemiesByPrefix(prefix) {
+    if (!prefix) return [];
+    const p = prefix.toLowerCase();
+    return enemies.filter(enemy => enemy.word.toLowerCase().startsWith(p));
+}
+
+function distanceToPlayer(enemy) {
+    return Math.hypot(player.x - enemy.x, player.y - enemy.y);
+}
+
+function nearestEnemy(list) {
+    if (!list || list.length === 0) return null;
+    let nearest = list[0];
+    let best = distanceToPlayer(nearest);
+    for (let i = 1; i < list.length; i++) {
+        const d = distanceToPlayer(list[i]);
+        if (d < best) {
+            best = d;
+            nearest = list[i];
+        }
+    }
+    return nearest;
+}
+
+function resetAllEnemyProgress() {
+    enemies.forEach(enemy => {
+        enemy.typed = '';
+        enemy.displayWord = enemy.word;
+    });
+}
+
 document.addEventListener('keydown', (e) => {
     if (!inputEnabled) return;
+
+    const prevTyped = typedWord; // 入力前のバッファ
+
     if (e.key === 'Backspace') {
         typedWord = typedWord.slice(0, -1);
     } else if (currentLanguage === 'japanese') {
@@ -391,38 +428,87 @@ document.addEventListener('keydown', (e) => {
         typedWord += e.key.toLowerCase();
     }
 
-    // 進捗リセット判定
-    const anyMatch = enemies.some(enemy => enemy.word.toLowerCase().startsWith(typedWord.toLowerCase()));
-    if (!anyMatch && typedWord.length > 0) {
-        typedWord = '';
-        enemies.forEach(enemy => { enemy.displayWord = enemy.word; });
+    // バックスペースやクリア後の挙動: 空文字なら全リセット
+    if (typedWord.length === 0) {
+        resetAllEnemyProgress();
         return;
     }
 
-    enemies.forEach(enemy => {
-        if (enemy.word.toLowerCase().startsWith(typedWord.toLowerCase())) {
-            enemy.displayWord = enemy.word.slice(typedWord.length);
-        } else {
-            enemy.displayWord = enemy.word;
-        }
-    });
+    // まず、現在のバッファでマッチする敵を探す（最寄りのみが進行）
+    let matches = findMatchingEnemiesByPrefix(typedWord);
+    if (matches.length > 0) {
+        const target = nearestEnemy(matches);
+        // 他の敵の進行をリセット
+        enemies.forEach(enemy => {
+            if (enemy === target) {
+                enemy.typed = typedWord;
+                enemy.displayWord = enemy.word.slice(typedWord.length);
+            } else {
+                enemy.typed = '';
+                enemy.displayWord = enemy.word;
+            }
+        });
+    } else {
+        // 現在のバッファではどの敵にもマッチしない -> 即リセット
+        // ただし、元の入力（prevTyped を含め）から右側のサフィックスが
+        // 別の敵にマッチする場合、それを採用する。
+        resetAllEnemyProgress();
 
-    const matchedEnemy = enemies.find(enemy => enemy.word.toLowerCase() === typedWord.toLowerCase());
-    if (matchedEnemy) {
-        fireBurstAtEnemy(matchedEnemy);
-        typedWord = '';
-        // タイプ完了した敵の単語を再抽選
-        let availableWords = currentWordList.filter(word => !usedWords.includes(word));
-        if (availableWords.length === 0) {
-            usedWords = [];
-            availableWords = currentWordList;
+        // 採用ルール: prevTyped 全体を走査して左から1文字ずつ削る（右側サフィックスを試す）
+        // 例: prevTyped = "abc" -> 試す順序: "bc", "c"
+        let adopted = false;
+        for (let i = 1; i < prevTyped.length; i++) {
+            const suffix = prevTyped.slice(i);
+            const suffMatches = findMatchingEnemiesByPrefix(suffix);
+            if (suffMatches.length > 0) {
+                const target = nearestEnemy(suffMatches);
+                typedWord = suffix;
+                // 他はリセット、ターゲットだけ進行
+                enemies.forEach(enemy => {
+                    if (enemy === target) {
+                        enemy.typed = suffix;
+                        enemy.displayWord = enemy.word.slice(suffix.length);
+                    } else {
+                        enemy.typed = '';
+                        enemy.displayWord = enemy.word;
+                    }
+                });
+                adopted = true;
+                break;
+            }
         }
-        const newWord = availableWords[Math.floor(Math.random() * availableWords.length)];
-        usedWords.push(newWord);
-        matchedEnemy.word = newWord;
-        matchedEnemy.displayWord = newWord;
+
+        // 何も採用されなければ typedWord は空（既に resetAllEnemyProgress() されている）
+        if (!adopted) {
+            typedWord = '';
+        }
     }
-}); 
+
+    // 完全一致（敵の単語を完成させた）した場合も、複数存在するなら最寄りを対象にする
+    if (typedWord.length > 0) {
+        const exactMatches = enemies.filter(enemy => enemy.word.toLowerCase() === typedWord.toLowerCase());
+        if (exactMatches.length > 0) {
+            const target = nearestEnemy(exactMatches);
+            // 攻撃実行
+            fireBurstAtEnemy(target);
+
+            // 単語の再抽選と敵のリセット
+            let availableWords = currentWordList.filter(word => !usedWords.includes(word));
+            if (availableWords.length === 0) {
+                usedWords = [];
+                availableWords = currentWordList;
+            }
+            const newWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+            usedWords.push(newWord);
+            target.word = newWord;
+            target.typed = '';
+            target.displayWord = newWord;
+
+            // 全体のバッファもクリア
+            typedWord = '';
+        }
+    }
+});
 
 // イベントリスナー
 // UIテキストを現在の言語で更新する関数
