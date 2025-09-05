@@ -9,6 +9,38 @@ function setTheme(isDark) {
     } else {
         document.body.classList.remove('dark-theme');
     }
+    // テーマ変更時にキャンバス内の色を再適用
+    applyCanvasColors();
+}
+
+// Canvas 用のテーマ色を取得
+function getCanvasColors() {
+    const cs = getComputedStyle(document.body);
+    const accent = (cs.getPropertyValue('--accent') || '#ff9800').trim();
+    const canvasBg = (cs.getPropertyValue('--canvas-bg') || '#e0e0e0').trim();
+    const textMain = (cs.getPropertyValue('--text-main') || '#333').trim();
+    const textSub = (cs.getPropertyValue('--text-sub') || '#555').trim();
+
+    // 指定されたルールに従う色
+    return {
+        enemy: accent || '#ff9800',
+        enemyText: '#ffffff',
+        player: '#ffffff',
+        hpText: textMain,
+        bullet: '#A9A9A9',
+        canvasBg: canvasBg
+    };
+}
+
+// Canvas 内の既存オブジェクトにテーマ色を適用
+function applyCanvasColors() {
+    const colors = getCanvasColors();
+    // プレイヤー
+    player.color = colors.player;
+    // 敵
+    enemies.forEach(e => e.color = colors.enemy);
+    // 弾
+    bullets.forEach(b => b.color = colors.bullet);
 }
 
 // テーマ要素の初期化はDOMが準備されてから行う
@@ -162,17 +194,23 @@ function spawnEnemyWrapper() {
     const word = availableWords[Math.floor(Math.random() * availableWords.length)];
     usedWords.push(word);
     const enemy = spawnEnemyModule(canvas, word, ENEMY_MAX_HP);
+    // テーマの色を適用
+    const colors = getCanvasColors();
+    enemy.color = colors.enemy;
+    enemy.displayColor = colors.enemy; // 予備
     enemies.push(enemy);
 }
 
 // 描画
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // プレイヤー描画
+    // 背景
+    const colors = getCanvasColors();
+    ctx.fillStyle = colors.canvasBg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // プレイヤー描画（白い輪郭）
     ctx.beginPath();
     ctx.arc(player.x, player.y, PLAYER_RADIUS, 0, Math.PI * 2);
-    ctx.strokeStyle = player.color;
+    ctx.strokeStyle = colors.player;
     ctx.lineWidth = 4;
     ctx.stroke();
     // 塗りつぶしなし
@@ -181,14 +219,13 @@ function draw() {
     enemies.forEach(enemy => {
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, ENEMY_RADIUS * 0.7, 0, Math.PI * 2); // サイズ縮小
-        ctx.fillStyle = '#a2565f'; // 赤色指定
+        ctx.fillStyle = enemy.color || colors.enemy; // 敵はアクセント色
         ctx.fill();
-        // 縁取りなし
-        // 単語表示
-        ctx.fillStyle = 'black';
+        // 単語表示（白）
+        ctx.fillStyle = colors.enemyText;
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
-        ctx.globalAlpha = 0.7;
+        ctx.globalAlpha = 0.9;
         ctx.fillText(enemy.displayWord || enemy.word, enemy.x, enemy.y - ENEMY_RADIUS - 5);
         ctx.globalAlpha = 1.0;
     });
@@ -197,12 +234,12 @@ function draw() {
     bullets.forEach(bullet => {
         ctx.beginPath();
         ctx.arc(bullet.x, bullet.y, BULLET_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = bullet.color;
+        ctx.fillStyle = bullet.color || colors.bullet;
         ctx.fill();
     });
 
     // HP表示
-    ctx.fillStyle = '#666'; /* HP表示の色をグレーに */
+    ctx.fillStyle = colors.hpText; /* HP表示の色 */
     ctx.font = '16px Montserrat';
     ctx.textAlign = 'center';
     ctx.fillText(uiTexts[currentUiLanguage].hp + player.hp, player.x, player.y + PLAYER_RADIUS + 20);
@@ -300,6 +337,8 @@ function initializeGame() {
     canvas.height = currentCanvasHeight;
     
     updateCurrentWordList();
+    // キャンバスの色を反映
+    applyCanvasColors();
     
     if (currentWordList.length === 0) {
         alert('選択された言語または難易度の単語リストが見つかりません。');
@@ -322,12 +361,15 @@ function fireBurstAtEnemy(targetEnemy) {
     const angle = Math.atan2(targetEnemy.y - player.y, targetEnemy.x - player.x);
     for (let i = 0; i < 3; i++) {
         setTimeout(() => {
-            bullets.push(new Bullet(
+            const colors = getCanvasColors();
+            const b = new Bullet(
                 player.x,
                 player.y,
                 Math.cos(angle) * BULLET_SPEED,
                 Math.sin(angle) * BULLET_SPEED
-            ));
+            );
+            b.color = colors.bullet;
+            bullets.push(b);
         }, i * 100);
     }
 }
