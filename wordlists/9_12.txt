@@ -1,6 +1,5 @@
 absolutely
 acceptable
-accommodation
 accompany
 accomplish
 achievement
@@ -8,11 +7,9 @@ acknowledge
 acquisition
 additional
 adjustment
-administration
 advantage
 adventure
 advertise
-advertisement
 afternoon
 aggressive
 agreement
@@ -31,7 +28,6 @@ application
 appointment
 appreciate
 appropriate
-approximately
 architecture
 arrangement
 assessment
@@ -47,7 +43,6 @@ attention
 attraction
 attractive
 attribute
-automatically
 available
 awareness
 background
@@ -67,7 +62,6 @@ certainly
 challenge
 championship
 character
-characteristic
 characterize
 childhood
 chocolate
@@ -83,7 +77,6 @@ commission
 commitment
 committee
 communicate
-communication
 community
 comparison
 compensation
@@ -96,10 +89,8 @@ complexity
 complicate
 component
 composition
-comprehensive
 compromise
 concentrate
-concentration
 conclusion
 condition
 conference
@@ -111,7 +102,6 @@ consequence
 consequently
 conservative
 considerable
-consideration
 consistent
 constantly
 constitute
@@ -123,7 +113,6 @@ contemporary
 continuous
 contribute
 contribution
-controversial
 convention
 conventional
 conversation
@@ -140,13 +129,11 @@ definition
 democracy
 democratic
 demonstrate
-demonstration
 department
 dependent
 depression
 description
 destruction
-determination
 determine
 development
 difference
@@ -185,15 +172,12 @@ encounter
 encourage
 enterprise
 entertain
-entertainment
 environment
-environmental
 equipment
 equivalent
 especially
 essential
 establish
-establishment
 evaluation
 eventually
 everybody
@@ -218,7 +202,6 @@ explanation
 expression
 extension
 extensive
-extraordinary
 extremely
 faithfully
 fantastic
@@ -258,7 +241,6 @@ immediately
 immigrant
 immigration
 implement
-implementation
 implication
 importance
 important
@@ -282,7 +264,6 @@ initially
 initiative
 innovation
 institution
-institutional
 instruction
 instrument
 insurance
@@ -291,15 +272,12 @@ intellectual
 intelligence
 intention
 interaction
-international
 interpret
-interpretation
 intervention
 interview
 introduce
 introduction
 investigate
-investigation
 investment
 invitation
 involvement
@@ -348,7 +326,6 @@ ownership
 paragraph
 participant
 participate
-participation
 particular
 particularly
 partnership
@@ -398,16 +375,13 @@ promotion
 proportion
 protection
 provision
-psychological
 publication
 publisher
-qualification
 reasonable
 reasonably
 recognition
 recognize
 recommend
-recommendation
 reduction
 reference
 reflection
@@ -420,15 +394,12 @@ relatively
 religious
 remarkable
 represent
-representation
-representative
 reputation
 requirement
 researcher
 resistance
 resolution
 respectively
-responsibility
 responsible
 restaurant
 restriction
@@ -446,7 +417,6 @@ settlement
 shareholder
 significance
 significant
-significantly
 similarly
 situation
 something
@@ -495,7 +465,6 @@ transform
 transition
 translate
 transport
-transportation
 treatment
 typically
 ultimately
@@ -503,7 +472,6 @@ uncertainty
 understand
 undertake
 unemployment
-unfortunately
 universal
 university
 variation
