@@ -7,7 +7,7 @@ actor
 adapt
 add
 admit
-adopt
+adopt   
 adult
 after
 again
@@ -810,7 +810,6 @@ send
 sense
 serve
 set
-sex
 shade
 shake
 shall
