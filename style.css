@@ -65,9 +65,7 @@ body.dark-theme {
 
 /* 明示的に start-screen の各ラベルをテーマ化 */
 #languageLabel,
-#uiLanguageLabel,
 #typingLanguageSelection label,
-#uiLanguageSelection label,
 #difficultySelection label,
 #progressiveMode label,
 #resolutionSelection label {

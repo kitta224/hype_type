@@ -110,7 +110,6 @@ const ctx = canvas.getContext('2d');
 const startScreen = document.getElementById('startScreen');
 const startButton = document.getElementById('startButton');
 const languageSelect = document.getElementById('languageSelect');
-const uiLanguageSelect = document.getElementById('uiLanguageSelect');
 const difficultySelect = document.getElementById('difficultySelect');
 const progressiveDifficulty = document.getElementById('progressiveDifficulty');
 const resolutionSelect = document.getElementById('resolutionSelect');
@@ -187,7 +186,7 @@ let bullets = [];
 // 単語リスト管理
 let wordLists = {};
 let currentLanguage = 'english'; // タイプ言語
-let currentUiLanguage = 'japanese'; // 表示言語
+let currentUiLanguage = 'english'; // 表示言語（日本語UIは一時無効化）
 let currentDifficulty = 'easy';
 let useProgressiveDifficulty = false; // 廃止: ウェーブシステムで管理
 let currentWordList = [];
@@ -529,8 +528,6 @@ document.addEventListener('keydown', (e) => {
     let ch = null;
     if (e.key === 'Backspace') {
         ch = 'BACKSPACE';
-    } else if (currentLanguage === 'japanese') {
-        if (e.key.length === 1) ch = e.key; // 日本語ではそのまま受け取る
     } else if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
         ch = e.key.toLowerCase();
     }
@@ -611,9 +608,10 @@ function updateUIText() {
     document.querySelector('h1').textContent = texts.title;
     document.querySelector('h3') && (document.querySelector('h3').textContent = texts.subtitle);
     document.getElementById('languageLabel').textContent = texts.languageLabel;
-    // 言語選択肢
-    languageSelect.options[0].text = texts.languageEnglish;
-    languageSelect.options[1].text = texts.languageJapanese;
+    // 言語選択肢（英語のみ）
+    if (languageSelect && languageSelect.options && languageSelect.options[0]) {
+        languageSelect.options[0].text = texts.languageEnglish;
+    }
     document.querySelector('#difficultySelection label').textContent = texts.difficultyLabel;
     difficultySelect.options[0].text = texts.difficultyEasy;
     difficultySelect.options[1].text = texts.difficultyMedium;
@@ -632,16 +630,10 @@ languageSelect.addEventListener('change', () => {
     updateCurrentWordList();
 });
 
-uiLanguageSelect.addEventListener('change', () => {
-    currentUiLanguage = uiLanguageSelect.value;
-    updateUIText();
-});
-
 // 初期表示時にもUI更新
 window.addEventListener('DOMContentLoaded', () => {
     // セレクトボックス初期値反映
     languageSelect.value = currentLanguage;
-    uiLanguageSelect.value = currentUiLanguage;
     updateUIText();
 });
 difficultySelect.addEventListener('change', () => {
@@ -694,23 +686,6 @@ const uiTexts = {
         resolutionLabel: "Resolution:",
         resolutionDefault: "Default (80% of window)",
         startButton: "Start Game",
-        hp: "HP: "
-    },
-    japanese: {
-        title: "Hype_Type",
-        subtitle: "あなたのタイプ速度を武器に",
-        languageLabel: "タイプ時に使用する言語を選択:",
-        languageEnglish: "英語",
-        languageJapanese: "日本語",
-        difficultyLabel: "難易度を選択:",
-        difficultyEasy: "初級",
-        difficultyMedium: "中級",
-        difficultyHard: "上級",
-        difficultyExpert: "達人",
-        progressiveLabel: "難易度を徐々に上昇させる",
-        resolutionLabel: "解像度:",
-        resolutionDefault: "デフォルト (ウィンドウの80%)",
-        startButton: "ゲーム開始",
         hp: "HP: "
     }
 };
