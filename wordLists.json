@@ -7,38 +7,25 @@
           "name": "初級",
           "minLength": 3,
           "maxLength": 5,
-          "words": [
-            "cat", "dog", "sun", "run", "fun", "hat", "bat", "car", "cup", "pen",
-            "book", "tree", "bird", "fish", "milk", "cake", "game", "play", "jump", "fast"
-          ]
+          "path": "wordlists/3_5.txt"
         },
         "medium": {
           "name": "中級",
           "minLength": 6,
           "maxLength": 8,
-          "words": [
-            "orange", "banana", "purple", "yellow", "garden", "window", "button", "summer", "winter", "spring",
-            "monkey", "rabbit", "dragon", "castle", "planet", "rocket", "cookie", "butter", "silver", "golden"
-          ]
+          "path": "wordlists/6_8.txt"
         },
         "hard": {
           "name": "上級",
           "minLength": 9,
           "maxLength": 12,
-          "words": [
-            "strawberry", "pineapple", "chocolate", "adventure", "wonderful", "beautiful", "dangerous", "mysterious",
-            "elephant", "butterfly", "mountain", "avalanche", "hurricane", "earthquake", "fireworks", "laboratory"
-          ]
+          "path": "wordlists/9_12.txt"
         },
         "expert": {
           "name": "達人",
           "minLength": 13,
           "maxLength": 20,
-          "words": [
-            "extraordinary", "magnificent", "sophisticated", "revolutionary", "unprecedented", "international",
-            "responsibility", "determination", "concentration", "understanding", "appreciation", "communication",
-            "intelligence", "imagination", "celebration", "organization", "destination", "recommendation"
-          ]
+          "path": "wordlists/13_20.txt"
         }
       }
     },
