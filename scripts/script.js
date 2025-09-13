@@ -138,6 +138,7 @@ const PLAYER_MAX_HP = 100;
 const ENEMY_MAX_HP = 30; // 初期値（10倍スケール）：3 -> 30
 const BULLET_SPEED = 10;
 const ENEMY_SPAWN_INTERVAL = 2000; // 敵の出現間隔 (ms)
+let inputEnabled = true; // キーボード入力の有効/無効を制御
 
 // プレイヤー
 let player = {
@@ -197,8 +198,7 @@ let bullets = [];
 let wordLists = {};
 let currentLanguage = 'english'; // タイプ言語
 let currentUiLanguage = 'english'; // 表示言語（日本語UIは一時無効化）
-let currentDifficulty = 'easy';
-let useProgressiveDifficulty = false; // 廃止: ウェーブシステムで管理
+
 let currentWordList = [];
 let score = 0;
 let enemiesDefeated = 0;
@@ -208,10 +208,8 @@ let usedWords = [];
 let currentWord = '';
 let typedWord = '';
 let lastEnemySpawnTime = 0;
-let currentDifficultyLevel = 0;
-const difficultyOrder = ['easy', 'medium', 'hard', 'expert'];
 
-// 単語リストを読み込む
+
 // 単語リストを読み込む
 async function loadAndSetWordLists() {
     wordLists = await loadWordLists();
@@ -234,8 +232,7 @@ function updateCurrentWordList() {
     }
 }
 
-// 難易度を上昇させる
-// difficulty auto-increase removed; wave system controls enemy toughness and available words
+
 
 /**
  * 敵を生成するラッパー関数
@@ -431,8 +428,7 @@ function update() {
  */
 function initializeGame() {
     currentLanguage = languageSelect.value;
-    currentDifficulty = difficultySelect.value;
-    // progressiveDifficulty は廃止だがチェックボックスはUIに残るため無視
+    
     enemiesDefeated = 0;
     score = 0;
 
@@ -562,7 +558,7 @@ document.addEventListener('keydown', (e) => {
     const completed = enemies.filter(enemy => enemy.typed && enemy.typed >= enemy.word.length);
     if (completed.length > 0) {
         // 重複がある場合はプレイヤーからの距離で最寄りを選ぶ
-        const target = nearestEnemy(completed);
+        const target = typeSystem.nearestEnemy(completed, player);
         if (target) {
             fireBurstAtEnemy(target);
 
@@ -595,7 +591,7 @@ document.addEventListener('keydown', (e) => {
 // イベントリスナー
 // UIテキストを現在の言語で更新する関数
 function updateUIText() {
-    const texts = uiTexts[currentUiLanguage];
+    const texts = uiTexts[currentLanguage];
     document.querySelector('h1').textContent = texts.title;
     document.querySelector('h3') && (document.querySelector('h3').textContent = texts.subtitle);
     document.getElementById('languageLabel').textContent = texts.languageLabel;
@@ -603,14 +599,10 @@ function updateUIText() {
     if (languageSelect && languageSelect.options && languageSelect.options[0]) {
         languageSelect.options[0].text = texts.languageEnglish;
     }
-    document.querySelector('#difficultySelection label').textContent = texts.difficultyLabel;
-    difficultySelect.options[0].text = texts.difficultyEasy;
-    difficultySelect.options[1].text = texts.difficultyMedium;
-    difficultySelect.options[2].text = texts.difficultyHard;
-    difficultySelect.options[3].text = texts.difficultyExpert;
-    document.querySelector('#progressiveMode label').lastChild.textContent = texts.progressiveLabel;
-    document.querySelector('#resolutionSelection label').textContent = texts.resolutionLabel;
-    resolutionSelect.options[0].text = texts.resolutionDefault;
+
+
+
+
     document.getElementById('startButton').textContent = texts.startButton;
 }
 
@@ -626,10 +618,6 @@ window.addEventListener('DOMContentLoaded', () => {
     // セレクトボックス初期値反映
     languageSelect.value = currentLanguage;
     updateUIText();
-});
-difficultySelect.addEventListener('change', () => {
-    currentDifficulty = difficultySelect.value;
-    updateCurrentWordList();
 });
 
 // ゲーム開始
@@ -668,15 +656,16 @@ const uiTexts = {
         languageLabel: "Select language for typing:",
         languageEnglish: "English",
         languageJapanese: "Japanese",
-        difficultyLabel: "Select difficulty:",
-        difficultyEasy: "Easy",
-        difficultyMedium: "Medium",
-        difficultyHard: "Hard",
-        difficultyExpert: "Expert",
-        progressiveLabel: "Increase difficulty progressively",
-        resolutionLabel: "Resolution:",
-        resolutionDefault: "Default (80% of window)",
         startButton: "Start Game",
         hp: "HP: "
     }
 };
+
+// locales.jsonからUIテキストを読み込む
+fetch('jsons/locales.json')
+    .then(response => response.json())
+    .then(data => {
+        Object.assign(uiTexts.english, data.uiTexts.english);
+        updateUIText();
+    })
+    .catch(error => console.error('Error loading locales:', error));
