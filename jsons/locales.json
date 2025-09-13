@@ -1,0 +1,21 @@
+{
+  "uiTexts": {
+    "english": {
+      "title": "Hype_Type",
+      "subtitle": "Weaponize your WPM",
+      "languageLabel": "Select language for typing:",
+      "languageEnglish": "English",
+      "languageJapanese": "Japanese",
+      "difficultyLabel": "Select difficulty:",
+      "difficultyEasy": "Easy",
+      "difficultyMedium": "Medium",
+      "difficultyHard": "Hard",
+      "difficultyExpert": "Expert",
+      "progressiveLabel": "Increase difficulty progressively",
+      "resolutionLabel": "Resolution:",
+      "resolutionDefault": "Default (80% of window)",
+      "startButton": "Start Game",
+      "hp": "HP: "
+    }
+  }
+}

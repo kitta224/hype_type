@@ -1,9 +1,14 @@
-import { Enemy, spawnEnemy as spawnEnemyModule } from './enemy.js';
-import { Bullet } from './bullet.js';
-import { loadWordLists, getCurrentWordList } from './wordManager.js';
-import wave from './wave.js';
+// 必要なモジュールのインポート
+import { Enemy, spawnEnemy as spawnEnemyModule } from './enemy.js'; // 敵クラスと生成関数
+import { Bullet } from './bullet.js'; // 弾クラス
+import { loadWordLists, getCurrentWordList } from './wordManager.js'; // 単語リスト管理
+import wave from './wave.js'; // ウェーブ管理システム
+import TypeSystem from './typesys.js'; // タイピング入力システム
 
-// テーマ初期化
+/**
+ * テーマを初期化する関数
+ * @param {boolean} isDark - ダークテーマかどうか
+ */
 function setTheme(isDark) {
     if (isDark) {
         document.body.classList.add('dark-theme');
@@ -14,7 +19,10 @@ function setTheme(isDark) {
     applyCanvasColors();
 }
 
-// Canvas 用のテーマ色を取得
+/**
+ * Canvas用のテーマ色を取得
+ * @returns {Object} 各種色設定を含むオブジェクト
+ */
 function getCanvasColors() {
     const cs = getComputedStyle(document.body);
     const accent = (cs.getPropertyValue('--accent') || '#ff9800').trim();
@@ -37,7 +45,9 @@ function getCanvasColors() {
     };
 }
 
-// Canvas 内の既存オブジェクトにテーマ色を適用
+/**
+ * Canvas内の既存オブジェクトにテーマ色を適用
+ */
 function applyCanvasColors() {
     const colors = getCanvasColors();
     // プレイヤー
@@ -50,7 +60,7 @@ function applyCanvasColors() {
 
 // テーマ要素の初期化はDOMが準備されてから行う
 // ユーザー設定をlocalStorageに保存するキー
-const THEME_KEY = 'hype_type_theme'; // values: 'dark' | 'light' | 'system'
+const THEME_KEY = 'hype_type_theme'; // 保存キー: 'dark' | 'light' | 'system' のいずれか
 
 function applyThemeFromPreference(pref) {
     if (pref === 'dark') return setTheme(true);
@@ -227,7 +237,10 @@ function updateCurrentWordList() {
 // 難易度を上昇させる
 // difficulty auto-increase removed; wave system controls enemy toughness and available words
 
-// 敵を生成
+/**
+ * 敵を生成するラッパー関数
+ * 単語リストからランダムに単語を選び、敵を生成
+ */
 function spawnEnemyWrapper() {
     if (currentWordList.length === 0) {
         console.warn('単語リストが空です');
@@ -252,7 +265,10 @@ function spawnEnemyWrapper() {
     enemies.push(enemy);
 }
 
-// 描画
+/**
+ * ゲーム画面を描画
+ * 背景、プレイヤー、敵、弾、UIなどを描画
+ */
 function draw() {
     // 背景
     const colors = getCanvasColors();
@@ -334,7 +350,10 @@ function draw() {
     ctx.fillText(uiTexts[currentUiLanguage].hp + player.hp, player.x, player.y + PLAYER_RADIUS + 20);
 }
 
-// 更新
+/**
+ * ゲーム状態を更新
+ * 敵の出現、移動、衝突判定、弾の移動などを処理
+ */
 function update() {
     const now = Date.now();
 
@@ -344,21 +363,16 @@ function update() {
         lastEnemySpawnTime = now;
     }
 
-    // 敵の移動 (プレイヤーに向かってくる)
+    // 敵の移動と衝突判定
     enemies.forEach(enemy => {
-        const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-        enemy.x += Math.cos(angle) * 0.25; /* 敵の移動速度を低下 */
-        enemy.y += Math.sin(angle) * 0.25; /* 敵の移動速度を低下 */
-
-        // 敵とプレイヤーの衝突判定
-        const dist = Math.sqrt(Math.pow(player.x - enemy.x, 2) + Math.pow(player.y - enemy.y, 2));
-        if (dist < PLAYER_RADIUS + ENEMY_RADIUS) {
+        enemy.moveTowards(player.x, player.y);
+        
+        if (enemy.checkPlayerCollision(player.x, player.y, PLAYER_RADIUS, ENEMY_RADIUS)) {
             player.hp -= 10; // ダメージ
             enemies = enemies.filter(e => e !== enemy); // 敵を削除
             if (player.hp <= 0) {
                 alert('Game Over!');
                 // ゲームオーバー時の処理
-                // 例: リロードせずにスタート画面に戻る
                 startScreen.style.display = 'block';
                 canvas.style.display = 'none';
                 // ゲームの状態をリセット
@@ -374,12 +388,10 @@ function update() {
 
     // 弾の移動と衝突判定
     bullets.forEach(bullet => {
-        bullet.x += bullet.vx;
-        bullet.y += bullet.vy;
+        bullet.move();
 
         enemies.forEach(enemy => {
-            const dist = Math.sqrt(Math.pow(bullet.x - enemy.x, 2) + Math.pow(bullet.y - enemy.y, 2));
-            if (dist < BULLET_RADIUS + ENEMY_RADIUS) {
+            if (bullet.checkEnemyCollision(enemy.x, enemy.y, BULLET_RADIUS, ENEMY_RADIUS)) {
                 const dmg = (typeof bullet.damage === 'number') ? bullet.damage : 1;
                 enemy.hp -= dmg;
 
@@ -412,7 +424,11 @@ function update() {
     );
 }
 
-// ゲームの初期化
+/**
+ * ゲームを初期化
+ * 言語設定、難易度、解像度などを設定
+ * @returns {boolean} 初期化が成功したかどうか
+ */
 function initializeGame() {
     currentLanguage = languageSelect.value;
     currentDifficulty = difficultySelect.value;
@@ -451,14 +467,20 @@ function initializeGame() {
     return true;
 }
 
-// ゲームループ
+/**
+ * メインゲームループ
+ * updateとdrawを繰り返し呼び出す
+ */
 function gameLoop() {
     update();
     draw();
     requestAnimationFrame(gameLoop);
 }
 
-// 攻撃処理を関数化
+/**
+ * 敵に対して3連射する攻撃処理
+ * @param {Object} targetEnemy - 攻撃対象の敵オブジェクト
+ */
 function fireBurstAtEnemy(targetEnemy) {
     if (!targetEnemy) return;
     const angle = Math.atan2(targetEnemy.y - player.y, targetEnemy.x - player.x);
@@ -484,42 +506,11 @@ function fireBurstAtEnemy(targetEnemy) {
     }
 }
 
-// 入力処理（改良版）
-// 各敵ごとに進行度を持ち、最寄りのマッチする敵のみが進行する。
-// 間違いがあれば即リセットし、そのリセット中に元の入力のサフィックスが
-// 他の敵にマッチする場合はそちらに遷移して進行を継続する。
-let inputEnabled = true;
+// TypeSystemのインポート
 
-function findMatchingEnemiesByPrefix(prefix) {
-    if (!prefix) return [];
-    const p = prefix.toLowerCase();
-    return enemies.filter(enemy => enemy.word.toLowerCase().startsWith(p));
-}
 
-function distanceToPlayer(enemy) {
-    return Math.hypot(player.x - enemy.x, player.y - enemy.y);
-}
-
-function nearestEnemy(list) {
-    if (!list || list.length === 0) return null;
-    let nearest = list[0];
-    let best = distanceToPlayer(nearest);
-    for (let i = 1; i < list.length; i++) {
-        const d = distanceToPlayer(list[i]);
-        if (d < best) {
-            best = d;
-            nearest = list[i];
-        }
-    }
-    return nearest;
-}
-
-function resetAllEnemyProgress() {
-    enemies.forEach(enemy => {
-        enemy.typed = '';
-        enemy.displayWord = enemy.word;
-    });
-}
+// タイピング入力システムの初期化
+const typeSystem = new TypeSystem();
 
 document.addEventListener('keydown', (e) => {
     if (!inputEnabled) return;
