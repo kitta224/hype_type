@@ -4,6 +4,7 @@ import { Bullet } from './bullet.js'; // 弾クラス
 import { loadWordLists, getCurrentWordList } from './wordManager.js'; // 単語リスト管理
 import wave from './wave.js'; // ウェーブ管理システム
 import TypeSystem from './typesys.js'; // タイピング入力システム
+import se from './se.js'; // 効果音管理
 
 /**
  * テーマを初期化する関数
@@ -558,7 +559,7 @@ document.addEventListener('keydown', (e) => {
     const completed = enemies.filter(enemy => enemy.typed && enemy.typed >= enemy.word.length);
     if (completed.length > 0) {
         // 重複がある場合はプレイヤーからの距離で最寄りを選ぶ
-        const target = typeSystem.nearestEnemy(completed, player);
+        const target = nearestEnemy(completed);
         if (target) {
             fireBurstAtEnemy(target);
 
@@ -636,6 +637,7 @@ startButton.addEventListener('click', () => {
         currentWord = '';
         lastEnemySpawnTime = Date.now();
         usedWords = [];
+        inputEnabled = true;
 
         // ゲームループが多重起動しないように一度だけ開始
         if (!window._gameLoopRunning) {
