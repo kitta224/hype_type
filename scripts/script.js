@@ -307,7 +307,7 @@ function draw() {
                 const x = enemy.x - displayWidth / 2;
                 const y = enemy.y + ENEMY_RADIUS + 6; // 敵の下に移動
                 ctx.globalAlpha = 0.95;
-                ctx.fillStyle = '#ffffff'; // 白
+                ctx.fillStyle = colors.enemyText;
                 // 角丸長方形を描く
                 const radius = barHeight / 2;
                 ctx.beginPath();
