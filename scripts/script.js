@@ -7,6 +7,7 @@ import TypeSystem from './typesys.js'; // タイピング入力システム
 import se from './se.js'; // 効果音管理
 import BGMManager from './bgmManager.js'; // BGM管理
 import effectManager from './effectManager.js'; // エフェクト管理
+import './debug.js';
 /**
  * テーマを初期化する関数
  * @param {boolean} isDark - ダークテーマかどうか
@@ -62,6 +63,8 @@ function applyCanvasColors() {
 
 // テーマ要素の初期化はDOMが準備されてから行う
 // ユーザー設定をlocalStorageに保存するキー
+
+
 const THEME_KEY = 'hype_type_theme'; // 保存キー: 'dark' | 'light' | 'system' のいずれか
 
 function applyThemeFromPreference(pref) {
@@ -152,43 +155,7 @@ let player = {
 // プレイヤーの攻撃力（10 が基準、弾の damage は attackPower）
 player.attackPower = 10;
 
-// デバッグ用 API: ブラウザのコンソールから以下を呼べます
-// window.hypeType.cmd('debug on') / window.hypeType.cmd('debug off')
-// window.hypeType.cmd('logDamage off') など
-window.hypeType = window.hypeType || {};
-window.hypeType.debug = window.hypeType.debug || false;
-window.hypeType.logDamage = (typeof window.hypeType.logDamage === 'boolean') ? window.hypeType.logDamage : true;
-window.hypeType.setDebug = function(val) {
-    this.debug = !!val;
-    console.info('[hypeType] debug =', this.debug);
-};
-window.hypeType.setLogDamage = function(val) {
-    this.logDamage = !!val;
-    console.info('[hypeType] logDamage =', this.logDamage);
-};
-window.hypeType.cmd = function(cmd) {
-    if (!cmd) return console.log('hypeType.cmd: commands: debug on|off, logDamage on|off, status');
-    const parts = String(cmd).trim().split(/\s+/);
-    const name = parts[0];
-    const arg = (parts[1] || '').toLowerCase();
-    if (name === 'debug') {
-        if (arg === 'on') this.setDebug(true);
-        else if (arg === 'off') this.setDebug(false);
-        else console.log('usage: debug on|off');
-        return;
-    }
-    if (name === 'logDamage') {
-        if (arg === 'on') this.setLogDamage(true);
-        else if (arg === 'off') this.setLogDamage(false);
-        else console.log('usage: logDamage on|off');
-        return;
-    }
-    if (name === 'status') {
-        console.log('[hypeType] status', { debug: this.debug, logDamage: this.logDamage });
-        return;
-    }
-    console.log('hypeType.cmd: unknown command. supported: debug, logDamage, status');
-};
+
 
 // 敵
 let enemies = [];
