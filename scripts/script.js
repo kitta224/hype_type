@@ -128,6 +128,9 @@ const languageSelect = document.getElementById('languageSelect');
 const difficultySelect = document.getElementById('difficultySelect');
 const progressiveDifficulty = document.getElementById('progressiveDifficulty');
 const resolutionSelect = document.getElementById('resolutionSelect');
+const pauseMenu = document.getElementById('pauseMenu');
+const resumeButton = document.getElementById('resumeButton');
+const menuButton = document.getElementById('menuButton');
 
 // 初期解像度設定
 let currentCanvasWidth = window.innerWidth * 0.8;
@@ -144,6 +147,16 @@ const ENEMY_MAX_HP = 30; // 初期値（10倍スケール）：3 -> 30
 const BULLET_SPEED = 10;
 const ENEMY_SPAWN_INTERVAL = 2000; // 敵の出現間隔 (ms)
 let inputEnabled = true; // キーボード入力の有効/無効を制御
+let gamePaused = false; // ゲームの一時停止状態
+
+// ポーズメニューの表示/非表示を更新
+function updatePauseMenu() {
+    if (gamePaused) {
+        pauseMenu.style.display = 'flex';
+    } else {
+        pauseMenu.style.display = 'none';
+    }
+}
 
 // プレイヤー
 let player = {
@@ -458,8 +471,13 @@ function initializeGame() {
  * updateとdrawを繰り返し呼び出す
  */
 function gameLoop() {
-    update();
-    draw();
+    if (!gamePaused) {
+        update();
+        draw();
+    } else {
+        // ポーズ中は描画のみ行う（ゲーム状態は更新しない）
+        draw();
+    }
     requestAnimationFrame(gameLoop);
 }
 
@@ -497,6 +515,13 @@ const typeSystem = new TypeSystem();
 
 document.addEventListener('keydown', (e) => {
     if (!inputEnabled) return;
+    
+    // ESCキーでゲームの一時停止/再開
+    if (e.key === 'Escape') {
+        gamePaused = !gamePaused;
+        updatePauseMenu();
+        return;
+    }
 
     // 判定に使う入力文字を決める
     let ch = null;
@@ -660,3 +685,21 @@ fetch('jsons/locales.json')
         updateUIText();
     })
     .catch(error => console.error('Error loading locales:', error));
+
+// ポーズメニューボタンのイベントリスナー
+resumeButton.addEventListener('click', () => {
+    gamePaused = false;
+    updatePauseMenu();
+});
+
+menuButton.addEventListener('click', () => {
+    gamePaused = false;
+    updatePauseMenu();
+    // ゲームを停止してスタート画面に戻る
+    window._gameLoopRunning = false;
+    canvas.style.display = 'none';
+    startScreen.style.display = 'block';
+    
+    // BGMを停止
+    bgmManager.stop();
+});
