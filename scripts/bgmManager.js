@@ -5,7 +5,7 @@ class BGMManager {
         this.volume = 0.5;
         this.isPlaying = false;
         this.trackCount = 184; // BGMフォルダ内のトラック数
-        this.controlsText = "↑↓:音量調整  ←→:曲スキップ";
+        this.controlsText = "↑↓:音量  ←→:曲スキップ  Alt+R:ランダム再生";
         
         // BGMファイルのベースパス
         this.bgmBasePath = './BGM/lofi/';
@@ -33,7 +33,7 @@ class BGMManager {
         const fileName = `${trackNumber}.mp3`;
         
         this.audio = new Audio(`${this.bgmBasePath}${fileName}`);
-        this.audio.volume = this.volume;
+        this.audio.volume = 0; // 初期音量を0に設定（フェードイン開始）
         this.audio.loop = true;
         
         // 曲の先頭から再生開始
@@ -41,9 +41,35 @@ class BGMManager {
             this.audio.currentTime = 0;
             this.audio.play().catch(e => console.error('BGM再生エラー:', e));
             this.isPlaying = true;
+            
+            // フェードイン効果を適用
+            this.applyFadeIn();
         });
         
         this.audio.load();
+    }
+    
+    // フェードイン効果を適用
+    applyFadeIn() {
+        if (!this.audio) return;
+        
+        const fadeDuration = 2000; // フェードイン時間（ミリ秒）
+        const startTime = Date.now();
+        const targetVolume = this.volume;
+        
+        const fadeInterval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / fadeDuration, 1);
+            
+            // イージング関数を使用してスムーズなフェードイン
+            const easedProgress = 1 - Math.pow(1 - progress, 2); // イージングアウト
+            this.audio.volume = easedProgress * targetVolume;
+            
+            if (progress >= 1) {
+                clearInterval(fadeInterval);
+                this.audio.volume = targetVolume; // 最終的に目標音量に設定
+            }
+        }, 50); // 50msごとに更新
     }
     
     // 次のトラックにスキップ
@@ -84,6 +110,10 @@ class BGMManager {
             } else if (e.key === 'ArrowLeft') {
                 // 前の曲
                 this.previousTrack();
+                e.preventDefault();
+            } else if (e.key === 'r' && e.altKey) {
+                // Alt+R: ランダムな曲を再選択して再生
+                this.playRandomTrack();
                 e.preventDefault();
             }
         });
