@@ -1,7 +1,7 @@
 // 単語リスト管理用モジュール
 export async function loadWordLists() {
     try {
-        const response = await fetch('../jsons/wordLists.json');
+        const response = await fetch('./jsons/wordLists.json');
         const wordListsConfig = await response.json();
 
         for (const langKey in wordListsConfig.languages) {

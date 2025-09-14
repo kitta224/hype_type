@@ -93,7 +93,19 @@ class BGMManager {
     drawBGMInfo(ctx, canvas) {
         if (!this.isPlaying) return;
         
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        // テーマシステムから色を取得（getCanvasColors関数が利用可能な場合）
+        let textColor = 'rgba(255, 255, 255, 0.7)';
+        if (typeof getCanvasColors === 'function') {
+            try {
+                const colors = getCanvasColors();
+                // テキストメインカラーを使用し、透明度を追加
+                textColor = colors.textMain.replace(')', ', 0.7)').replace('rgb', 'rgba');
+            } catch (e) {
+                console.warn('テーマ色の取得に失敗しました:', e);
+            }
+        }
+        
+        ctx.fillStyle = textColor;
         ctx.font = '12px Arial';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'bottom';
