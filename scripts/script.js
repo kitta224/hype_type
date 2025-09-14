@@ -372,6 +372,9 @@ function update() {
                 const dmg = (typeof bullet.damage === 'number') ? bullet.damage : 1;
                 enemy.hp -= dmg;
 
+                // ダメージ表示エフェクトを生成
+                effectManager.createDamageEffect(enemy.x, enemy.y - 20, dmg, '#ff4444');
+
                 // デバッグ出力
                 if (window.hypeType && window.hypeType.debug && window.hypeType.logDamage) {
                     console.log(`[hypeType] ${new Date().toLocaleTimeString()} - Hit: '${enemy.word}' dmg=${dmg} hp_after=${Math.max(0, enemy.hp)} maxHp=${enemy.maxHp}`, { enemy, bullet, playerAttack: player.attackPower });

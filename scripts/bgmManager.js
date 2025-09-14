@@ -4,7 +4,7 @@ class BGMManager {
         this.currentTrack = 0;
         this.volume = 0.5;
         this.isPlaying = false;
-        this.trackCount = 184; // BGMフォルダ内のトラック数
+        this.trackCount = 10; // BGMフォルダ内のトラック数
         this.controlsText = "↑↓:音量  ←→:曲スキップ  Alt+R:ランダム再生";
         
         // BGMファイルのベースパス

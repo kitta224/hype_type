@@ -10,7 +10,7 @@ body {
     --accent: #ff9800;
     --button-bg: #4CAF50;
     --button-hover: #45a049;
-    --canvas-bg: #E7D0A9;
+    --canvas-bg: #f4ebdb;
     background-color: var(--bg-main);
     display: flex;
     justify-content: center;
