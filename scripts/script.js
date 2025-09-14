@@ -5,6 +5,7 @@ import { loadWordLists, getCurrentWordList } from './wordManager.js'; // 単語�
 import wave from './wave.js'; // ウェーブ管理システム
 import TypeSystem from './typesys.js'; // タイピング入力システム
 import se from './se.js'; // 効果音管理
+import BGMManager from './bgmManager.js'; // BGM管理
 
 /**
  * テーマを初期化する関数
@@ -210,6 +211,9 @@ let currentWord = '';
 let typedWord = '';
 let lastEnemySpawnTime = 0;
 
+// BGM管理
+const bgmManager = new BGMManager();
+
 
 // 単語リストを読み込む
 async function loadAndSetWordLists() {
@@ -346,6 +350,9 @@ function draw() {
     ctx.font = '16px Montserrat';
     ctx.textAlign = 'center';
     ctx.fillText(uiTexts[currentUiLanguage].hp + player.hp, player.x, player.y + PLAYER_RADIUS + 20);
+
+    // BGM情報表示（右下）
+    bgmManager.drawBGMInfo(ctx, canvas);
 }
 
 /**
@@ -644,6 +651,9 @@ startButton.addEventListener('click', () => {
             window._gameLoopRunning = true;
             gameLoop();
         }
+
+        // BGM再生開始
+        bgmManager.start();
     }
 });
 
