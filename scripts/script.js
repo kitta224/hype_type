@@ -489,9 +489,6 @@ function fireBurstAtEnemy(targetEnemy) {
     }
 }
 
-// TypeSystemのインポート
-
-
 // タイピング入力システムの初期化
 const typeSystem = new TypeSystem();
 
@@ -595,7 +592,7 @@ function updateUIText() {
     // 設定ボタン
     document.getElementById('settingsButton').textContent = texts.settingsButton;
     //
-
+    document.getElementById('muteToggleLabel').textContent = texts.muteToggleLabel;
     // スタートボタン
     document.getElementById('startButton').textContent = texts.startButton;
 }

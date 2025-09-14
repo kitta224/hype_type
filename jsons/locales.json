@@ -11,6 +11,7 @@
       "themeToggleLabel": "Dark theme",
       "settingsButton": "Settings",
       "startButton": "Start Game",
+      "muteToggleLabel": "Mute",
       "hp": "HP: "
     }
   }

@@ -34,7 +34,7 @@ body.dark-theme {
 #startScreen {
     text-align: center;
     background-color: var(--bg-panel);
-    padding: 40px;
+    padding: 20px 40px;
     border-radius: 20px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     max-width: 520px;
@@ -56,11 +56,22 @@ body.dark-theme {
     min-width: 180px;
 }
 
+.littlesetting {
+    justify-content: center;
+    gap: 32px;
+    margin-block: 5px;
+    color: var(--text-main);
+}
+
 /* ラベルとセレクトをテーマに沿わせる（開始画面の全要素に適用） */
 .langSelectBox label,
 .langSelectBox select,
 .langSelectBox .langLabel {
     color: var(--text-sub);
+}
+
+#languageLabel {
+    margin-bottom: 5px;
 }
 
 /* 明示的に start-screen の各ラベルをテーマ化 */
@@ -101,7 +112,7 @@ input[type="checkbox"] {
 }
 
 #themeToggleRow {
-    margin-top: 20px;
+    margin-top: 5px;
 }
 
 #themeToggleRow label {
@@ -112,6 +123,10 @@ input[type="checkbox"] {
 #themeToggleRow input[type="checkbox"] {
     margin-right: 8px;
     vertical-align: middle;
+}
+
+#startwithmute {
+    margin-top: 10px;
 }
 
 #startScreen h1 {
@@ -136,6 +151,7 @@ input[type="checkbox"] {
 }
 
 #languageSelect,
+#resolutionSelect,
 #difficultySelect {
     padding: 10px 15px;
     font-size: 16px;
@@ -169,14 +185,6 @@ input[type="checkbox"] {
 
 #resolutionSelection {
     margin-bottom: 20px;
-}
-
-#resolutionSelect {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 16px;
-    width: 200px;
 }
 
 #startButton {
