@@ -8,7 +8,7 @@ class BGMManager {
         this.controlsText = "↑↓:音量調整  ←→:曲スキップ";
         
         // BGMファイルのベースパス
-        this.bgmBasePath = '../BGM/lofi/';
+        this.bgmBasePath = './BGM/lofi/';
         
         // キーボードイベントリスナーを設定
         this.setupKeyboardControls();
@@ -111,7 +111,7 @@ class BGMManager {
         ctx.textBaseline = 'bottom';
         
         // 現在のBGM番号
-        const trackInfo = `BGM: ${this.currentTrack.toString().padStart(3, '0')}`;
+        const trackInfo = `BGM No.${this.currentTrack.toString().padStart(3, '0')}`;
         ctx.fillText(trackInfo, canvas.width - 10, canvas.height - 30);
         
         // 操作方法
