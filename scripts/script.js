@@ -470,13 +470,23 @@ function initializeGame() {
  * メインゲームループ
  * updateとdrawを繰り返し呼び出す
  */
-function gameLoop() {
-    if (!gamePaused) {
-        update();
-        draw();
-    } else {
-        // ポーズ中は描画のみ行う（ゲーム状態は更新しない）
-        draw();
+const FPS = 60;
+const frameInterval = 1000 / FPS;
+let lastFrameTime = 0;
+
+function gameLoop(currentTime) {
+    if (!lastFrameTime) lastFrameTime = currentTime;
+    const deltaTime = currentTime - lastFrameTime;
+
+    if (deltaTime >= frameInterval) {
+        if (!gamePaused) {
+            update();
+            draw();
+        } else {
+            // ポーズ中は描画のみ行う（ゲーム状態は更新しない）
+            draw();
+        }
+        lastFrameTime = currentTime - (deltaTime % frameInterval);
     }
     requestAnimationFrame(gameLoop);
 }
