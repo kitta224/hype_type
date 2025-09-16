@@ -2,6 +2,9 @@
 class EffectManager {
     constructor() {
         this.particles = [];
+        // 敵に追従するオーラ/リング等の継続表現
+        this.attachments = new Map(); // enemyId(number) -> { types:Set([...]) }
+        this._enemyIdSeed = 1;
     }
 
     /**
@@ -13,7 +16,6 @@ class EffectManager {
      * @param {string} [enemyShape] - 敵の形状に基づくパーティクル生成（オプション）
      */
     createEnemyDefeatEffect(x, y, color, fragmentType, enemyShape) {
-        
         // 破片エフェクト生成
         this.createFragments(x, y, color, fragmentType, enemyShape);
     }
@@ -121,6 +123,79 @@ class EffectManager {
             
             return particle.lifetime > 0;
         });
+    }
+
+    // 敵への状態付随エフェクト制御
+    attachStatus(enemy, type) {
+        if (!enemy.__eid) enemy.__eid = (this._enemyIdSeed++);
+        const key = enemy.__eid;
+        const rec = this.attachments.get(key) || { types: new Set() };
+        rec.types.add(type);
+        this.attachments.set(key, rec);
+    }
+    detachStatus(enemy, type) {
+        if (!enemy.__eid) return;
+        const key = enemy.__eid;
+        const rec = this.attachments.get(key);
+        if (!rec) return;
+        rec.types.delete(type);
+        if (rec.types.size === 0) this.attachments.delete(key);
+    }
+    clearEnemy(enemy) {
+        if (enemy.__eid) this.attachments.delete(enemy.__eid);
+    }
+
+    drawStatusAttachments(ctx, enemy) {
+        if (!enemy.__eid) return;
+        const rec = this.attachments.get(enemy.__eid);
+        if (!rec || rec.types.size === 0) return;
+        ctx.save();
+        ctx.translate(enemy.x, enemy.y);
+        // 個別の簡易表現
+        if (rec.types.has('burn')) {
+            // 炎のオーラ（ゆらぎ）
+            ctx.globalAlpha = 0.5;
+            ctx.fillStyle = 'rgba(255, 120, 0, 0.35)';
+            for (let i = 0; i < 5; i++) {
+                const r = 6 + Math.random() * 4;
+                ctx.beginPath();
+                ctx.arc((Math.random()-0.5)*2, (Math.random()-0.5)*2, r, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+        if (rec.types.has('chill')) {
+            // 冷気のリング
+            ctx.globalAlpha = 0.6;
+            ctx.strokeStyle = 'rgba(120, 200, 255, 0.9)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, 10 + (Math.sin(Date.now()*0.01)+1)*1.5, 0, Math.PI*2);
+            ctx.stroke();
+        }
+        if (rec.types.has('freeze')) {
+            // 氷の結晶風（簡易）
+            ctx.globalAlpha = 0.9;
+            ctx.strokeStyle = 'rgba(180, 230, 255, 0.95)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+                const ang = (i * Math.PI/2) + (Date.now()%500)/500*0.2;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(ang)*2, Math.sin(ang)*2);
+                ctx.lineTo(Math.cos(ang)*8, Math.sin(ang)*8);
+                ctx.stroke();
+            }
+        }
+        if (rec.types.has('bleed')) {
+            // 赤い滴り
+            ctx.globalAlpha = 0.7;
+            ctx.fillStyle = 'rgba(200, 0, 0, 0.7)';
+            for (let i = 0; i < 2; i++) {
+                ctx.beginPath();
+                ctx.arc((Math.random()-0.5)*4, 8 + Math.random()*3, 1.2, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+        ctx.restore();
     }
 
     /**

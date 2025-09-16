@@ -1,156 +1,130 @@
-# HypeType ゲーム仕様書
+# HypeType 開発・引き継ぎドキュメント
 
-## ゲーム概要
-タイピングシューティングゲームで、敵に表示された単語をタイプして倒すことが基本コンセプトです。
+---
 
-## 主要コンポーネント
+## 1. ゲーム概要
+タイピング・シューティングゲームです。キャンバス上に出現する敵の頭上に表示された単語をタイプすると弾が発射され、敵にダメージを与えられます。ウェーブ形式で進行し、敵を倒し続けてスコアを伸ばすことが目的です。
 
-### 1. コアシステム
-- **script.js**: ゲームのメインロジック
-  - ゲームループ管理
-  - オブジェクト(プレイヤー、敵、弾)の更新と描画
-  - 衝突判定
-  - スコア管理
+---
 
-### 2. ゲームオブジェクト
-- **enemy.js**: 敵クラス
-  - 敵の移動ロジック
-  - プレイヤーとの衝突判定
-  - 単語表示機能
-
-- **bullet.js**: 弾クラス
-  - 弾の移動ロジック
-  - 敵との衝突判定
-  - ダメージ計算
-
-### 3. データ管理
-- **wordManager.js**: 単語リスト管理
-  - 単語リストの読み込み
-  - 難易度別、言語別の単語選択
-  - JSONからの単語リスト読み込み
-  - 現在の単語リスト取得
-  - フォールバック用単語リスト
-
-```javascript
-// 単語リストの読み込み
-async function loadWordLists() {
-    const response = await fetch('../jsons/wordLists.json');
-    return await response.json();
-}
-
-// 現在の単語リスト取得
-function getCurrentWordList(wordLists, language, difficulty) {
-    return wordLists.languages[language].difficultyLevels[difficulty].words;
-}
+## 2. ディレクトリ構成
+```
+proj/hype_type/
+├─ index.html            … 画面レイアウト & 設定 UI
+├─ style.css             … テーマ・UI・キャンバスの CSS
+├─ scripts/              … ゲームロジック (ES2020)
+│  ├─ script.js          … メインエントリ / ゲームループ / UI
+│  ├─ enemy.js           … 敵クラス
+│  ├─ bullet.js          … 弾クラス
+│  ├─ wave.js            … ウェーブ管理
+│  ├─ wordManager.js     … 単語リスト管理
+│  ├─ typesys.js         … タイピング判定ユーティリティ
+│  ├─ effectManager.js   … エフェクト生成・管理
+│  ├─ bgmManager.js      … BGM 再生制御
+│  ├─ se.js              … 効果音管理
+│  └─ debug.js           … ブラウザコンソール用デバッグ API
+├─ jsons/                … 定義ファイル
+│  ├─ wordLists.json     … 難易度・言語別単語リスト
+│  └─ locales.json       … UI 文字列 (多言語対応)
+├─ BGM/, SE/             … 音声アセット
+└─ wordlists/            … 旧プレーンテキスト単語リスト
 ```
 
-- **wave.js**: ウェーブ管理
-  - 敵の出現パターン
-  - 難易度進行
-  - ウェーブ進行処理
-  - 敵HPのウェーブごとの調整
-  - 許可される難易度の管理
+---
 
-```javascript
-// ウェーブ進行処理
-function advanceWave() {
-    waveState.currentWave++;
-    waveState.killsThisWave = 0;
-}
+## 3. 主要依存関係
+本ゲームは **純粋なクライアントサイド実装** です。外部ライブラリは使用していません (原生 JS / HTML5 Canvas)。
 
-// 敵HPのウェーブごとの調整
-function getEnemyHPForWave(baseHP = 3) {
-    const extra = Math.floor((waveState.currentWave - 1) / 2);
-    return Math.max(1, baseHP + extra);
-}
-```
+* Audio 再生: `<audio>` 要素 + JS 制御
+* 設定永続化: `localStorage`
+* 多言語/データ読込: `fetch()` による JSON ロード
 
-### 4. ユーティリティ
-- **typesys.js**: タイピング入力システム
-  - キー入力検出
-  - タイプミスの判定
-  - プレフィックスにマッチする敵の検索
-  - プレイヤーからの距離計算
-  - 最も近い敵の検索
-  - 敵の入力進行度リセット
+---
 
-```javascript
-class TypeSystem {
-    // プレフィックスにマッチする敵を検索
-    findMatchingEnemiesByPrefix(prefix, enemies) {
-        // 実装内容
-    }
+## 4. コード概要
+### 4.1 script.js (コア)
+| 機能 | 説明 |
+|------|------|
+| **initGame()** | 画面要素取得・イベント登録・データ読込 |
+| **gameLoop()** | `requestAnimationFrame` で 60 FPS 固定ループ<br>  - `FPS = 60`, `frameInterval = 16.666…ms`<br>  - ポーズ中は `update()` スキップし `draw()` のみ |
+| **update() / draw()** | 各オブジェクト更新 & 描画 |
+| **Keyboard Handler** | 文字キー → TypeSystem、ESC → ポーズ |
+| **Pause Menu** | `gamePaused` フラグと `updatePauseMenu()` で表示切替 |
 
-    // プレイヤーからの距離を計算
-    distanceToPlayer(enemy, player) {
-        return Math.hypot(player.x - enemy.x, player.y - enemy.y);
-    }
-}
-```
+### 4.2 enemy.js / bullet.js
+- **Enemy**: 位置 (`x`,`y`)、単語、HP、進捗 (`typed`) を保持。`moveTowards()` でプレイヤーへ接近。
+- **Bullet**: 座標 & ベクトル (`vx`,`vy`)。`move()` が毎フレーム移動。敵との当たり判定は `script.js` 内。
 
-## 詳細なコード説明
+### 4.3 wave.js
+- `waveState` に現在ウェーブ・撃破数を保持。
+- `advanceWave()` で進行、`getEnemyHPForWave()` で HP スケール。
 
-### script.js の主要機能
-```javascript
-// テーマ設定
-function setTheme(isDark) {
-    if (isDark) {
-        document.body.classList.add('dark-theme');
-    } else {
-        document.body.classList.remove('dark-theme');
-    }
-    applyCanvasColors();
-}
+### 4.4 wordManager.js
+- JSON から全単語リストをロードし、言語・難易度でフィルタ。
 
-// ゲーム初期化
-function initGame() {
-    // キャンバス設定、イベントリスナー登録など
-    loadWordLists();
-    setTheme(localStorage.getItem(THEME_KEY) === 'dark');
-}
+### 4.5 typesys.js
+- 入力文字列と敵単語の **プレフィックス比較** で命中対象を決定。
+- プレイヤー座標との距離で最寄り敵を計算。
 
-// ゲームループ
-function gameLoop() {
-    // オブジェクト更新 → 描画 → リクエストアニメーションフレーム
-    updateObjects();
-    renderObjects();
-    requestAnimationFrame(gameLoop);
-}
-```
+### 4.6 effectManager.js
+- ヒット時・撃破時のスプライト/パーティクル管理 (Canvas).
 
-### enemy.js の主要メソッド
-```javascript
-class Enemy {
-    constructor(x, y, word, hp, color = '#808080') {
-        this.x = x;
-        this.y = y;
-        this.word = word;
-        this.displayWord = word;
-        this.typed = '';
-        this.hp = hp;
-        this.color = color;
-        this.maxHp = hp;
-    }
+### 4.7 bgmManager.js / se.js
+- **bgmManager**: ループ再生・BGM 切替・ミュート。
+- **se.js**: 効果音の短い一括管理。
 
-    // 敵をプレイヤーに向かって移動させる
-    moveTowards(targetX, targetY, speed = 0.25) {
-        const angle = Math.atan2(targetY - this.y, targetX - this.x);
-        this.x += Math.cos(angle) * speed;
-        this.y += Math.sin(angle) * speed;
-    }
+### 4.8 debug.js
+- `window.hypeType.cmd('debug on')` などでログ出力を切替可能。
 
-    // プレイヤーとの衝突判定
-    checkPlayerCollision(playerX, playerY, playerRadius, enemyRadius) {
-        const dist = Math.sqrt(Math.pow(playerX - this.x, 2) + Math.pow(playerY - this.y, 2));
-        return dist < playerRadius + enemyRadius;
-    }
-}
-```
+---
 
-## 設定ファイル
-- **wordLists.json**: 単語リストの設定
-- **locales.json**: 多言語対応用テキスト
+## 5. ゲームデザイン / ルール
+1. **開始**: スタート画面から `Start` を押すとゲーム開始。BGM 再生。
+2. **操作**:
+   * キーボード文字キー: 敵単語タイプ
+   * `Backspace`: 入力進捗を 1 文字戻す (全敵一括)
+   * `ESC`: ゲームポーズ/再開
+3. **撃破条件**: 敵単語を完全入力すると弾 3 連射。HP を 0 にすると撃破。
+4. **スコア**: 撃破毎に加点 (実装予定箇所あり)。
+5. **ウェーブ**: 一定撃破数で `advanceWave()`。敵 HP 増加。
+6. **敗北条件**: (未実装) プレイヤー HP が 0 など。
 
-## 開発メモ
-- テーマ切り替え機能あり(dark/light)
-- 解像度調整可能
+---
+
+## 6. UI & 設定
+| UI | 説明 |
+|----|------|
+| スタート画面 | 言語・解像度・テーマ・ミュートを選択 |
+| ポーズメニュー | `ゲーム再開` / `メニューに戻る` |
+| テーマ | ライト / ダーク (`body.dark-theme`) |
+
+---
+
+## 7. ビルド & 実行方法
+1. リポジトリをクローンし、VS Code などで開く。
+2. ルートで開発用サーバを起動 (例):
+   ```bash
+   python -m http.server 8000
+   ```
+3. ブラウザで `http://localhost:8000/` を開く。
+
+依存ライブラリ不要。最新ブラウザ (Chrome / Edge) 推奨。
+
+---
+
+## 8. 今後の改善案
+- スコア & ランキング実装
+- モバイル入力対応 (画面キーボード)
+- 敗北条件・タイトルリトライ
+- WebGL 化によるパフォーマンス向上
+
+---
+
+## 9. 引き継ぎポイントまとめ
+* **FPS 固定**: `script.js` 冒頭に `FPS`, `frameInterval`, `lastFrameTime` あり。
+* **ポーズ**: `gamePaused` と ESC キー処理。
+* **単語リスト追加**: `jsons/wordLists.json` に追記。
+* **多言語拡張**: `jsons/locales.json` と UI 文字列同期。
+* **デバッグ**: `debug.js` でコンソール操作。
+
+以上が現行バージョンの全体像です。
