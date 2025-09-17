@@ -57,11 +57,11 @@ export class Enemy {
             case 'chill': {
                 const duration = opts.durationSec ?? 4.0;
                 const slowFactor = Math.min(1, Math.max(0, opts.slowFactor ?? 0.5)); // 0..1
-                const baseDps = opts.baseDps ?? 0.5; // 弱い継続ダメージ
+                const baseDps = opts.baseDps ?? 1; // 弱い継続ダメージ
                 const dpsGrowthPerSec = opts.dpsGrowthPerSec ?? 0.5; // 経過時間で増加
                 const freezeThresholdSec = (opts.freezeThresholdSec != null)
                     ? opts.freezeThresholdSec
-                    : Math.max(0, 1.5 + 0.02 * this.baseMaxHp); // HP比例の基準時間（例）
+                    : Math.max(0, 1.5 + 0.5 * this.baseMaxHp); // HP比例の基準時間（例）
                 const canFreeze = duration >= freezeThresholdSec; // 指定継続が閾値未満なら凍結移行なし
                 const freezeDurationSec = opts.freezeDurationSec ?? 1.5;
                 if (this.status.chill) {
@@ -88,7 +88,7 @@ export class Enemy {
                 break;
             }
             case 'freeze': {
-                const duration = opts.durationSec ?? 1.5;
+                const duration = opts.durationSec ?? 5.0;
                 this.status.freeze = { remaining: duration };
                 // 凍結中は冷却を無効化
                 this.status.chill = null;

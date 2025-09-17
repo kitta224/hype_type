@@ -144,6 +144,7 @@ const PLAYER_MAX_HP = 100;
 const ENEMY_MAX_HP = 30; // 初期値（10倍スケール）：3 -> 30
 const BULLET_SPEED = 10;
 const ENEMY_SPAWN_INTERVAL = 2000; // 敵の出現間隔 (ms)
+const ENEMY_BASE_SPEED = 0.25; // 敵の基準移動速度（状態異常で変化）
 let inputEnabled = true; // キーボード入力の有効/無効を制御
 let gamePaused = false; // ゲームの一時停止状態
 
@@ -173,6 +174,14 @@ let enemies = [];
 
 // 弾
 let bullets = [];
+
+// Debug: expose game accessors for debug.js utilities
+if (window.hypeType && typeof window.hypeType.__setGameAccess === 'function') {
+    window.hypeType.__setGameAccess({
+        getEnemies: () => enemies,
+        getPlayer: () => player,
+    });
+}
 
 // 単語リスト管理
 let wordLists = {};
@@ -263,6 +272,13 @@ function draw() {
 
     // 敵描画
     enemies.forEach(enemy => {
+        // 状態エフェクトのアタッチ更新
+        if (enemy.status) {
+            if (enemy.status.burn) effectManager.attachStatus(enemy, 'burn'); else effectManager.detachStatus(enemy, 'burn');
+            if (enemy.status.chill) effectManager.attachStatus(enemy, 'chill'); else effectManager.detachStatus(enemy, 'chill');
+            if (enemy.status.freeze) effectManager.attachStatus(enemy, 'freeze'); else effectManager.detachStatus(enemy, 'freeze');
+            if (enemy.status.bleed) effectManager.attachStatus(enemy, 'bleed'); else effectManager.detachStatus(enemy, 'bleed');
+        }
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, ENEMY_RADIUS * 0.7, 0, Math.PI * 2); // サイズ縮小
         ctx.fillStyle = enemy.color || colors.enemy; // 敵はアクセント色
@@ -303,6 +319,8 @@ function draw() {
                 ctx.globalAlpha = 1.0;
             }
         }
+        // 状態エフェクトの描画
+        effectManager.drawStatusAttachments(ctx, enemy);
     });
 
     // ウェーブ情報表示（上部中央）
@@ -339,7 +357,7 @@ function draw() {
  * ゲーム状態を更新
  * 敵の出現、移動、衝突判定、弾の移動などを処理
  */
-function update() {
+function update(dtSec) {
     const now = Date.now();
 
     // エフェクトの更新
@@ -351,13 +369,24 @@ function update() {
         lastEnemySpawnTime = now;
     }
 
-    // 敵の移動と衝突判定
-    enemies.forEach(enemy => {
-        enemy.moveTowards(player.x, player.y);
+    // 敵の移動と衝突判定 + 状態異常の経過
+    enemies = enemies.filter(enemy => {
+        // 状態異常の進行
+        let st = { freezeActive: false, bleedKill: false };
+        if (typeof enemy.updateStatus === 'function') {
+            st = enemy.updateStatus(dtSec || (frameInterval / 1000));
+        }
+
+        // 凍結なら停止、冷却なら減速
+        let speed = ENEMY_BASE_SPEED;
+        if (st.freezeActive) speed = 0;
+        else if (enemy.status && enemy.status.chill) speed = ENEMY_BASE_SPEED * enemy.status.chill.slowFactor;
+
+        enemy.moveTowards(player.x, player.y, speed);
         
         if (enemy.checkPlayerCollision(player.x, player.y, PLAYER_RADIUS, ENEMY_RADIUS)) {
             player.hp -= 10; // ダメージ
-            enemies = enemies.filter(e => e !== enemy); // 敵を削除
+            effectManager.clearEnemy(enemy);
             if (player.hp <= 0) {
                 alert('Game Over!');
                 // ゲームオーバー時の処理
@@ -371,7 +400,16 @@ function update() {
                 typedWord = '';
                 lastEnemySpawnTime = 0;
             }
+            return false; // 敵を削除
         }
+
+        // DoT/出血による死亡
+        if ((st && st.bleedKill) || enemy.hp <= 0) {
+            killEnemy(enemy);
+            return false;
+        }
+
+        return true;
     });
 
     // 弾の移動と衝突判定
@@ -393,23 +431,8 @@ function update() {
 
                 bullets = bullets.filter(b => b !== bullet); // 弾を削除
                 if (enemy.hp <= 0) {
-                    // 敵撃破エフェクトを生成
-                    const colors = getCanvasColors();
-                    effectManager.createEnemyDefeatEffect(enemy.x, enemy.y, colors.enemy);
-                    
-                    // 敵撃破効果音を再生
-                    se.play('cu1.mp3');
-                    
+                    killEnemy(enemy);
                     enemies = enemies.filter(e => e !== enemy); // 敵を削除
-                    usedWords = usedWords.filter(w => w !== enemy.word); // 使用済み単語から削除
-                    enemiesDefeated++;
-                    score += 10;
-                    // wave管理に通知
-                    wave.onEnemyDefeated();
-
-                    if (window.hypeType && window.hypeType.debug) {
-                        console.log('[hypeType] Enemy defeated:', enemy.word);
-                    }
                 }
             }
         });
@@ -472,13 +495,31 @@ const FPS = 60;
 const frameInterval = 1000 / FPS;
 let lastFrameTime = 0;
 
+/**
+ * 敵撃破処理（弾・DoT共通）
+ */
+function killEnemy(enemy) {
+    const colors = getCanvasColors();
+    effectManager.createEnemyDefeatEffect(enemy.x, enemy.y, colors.enemy);
+    effectManager.clearEnemy(enemy);
+    se.play('cu1.mp3');
+    usedWords = usedWords.filter(w => w !== enemy.word);
+    enemiesDefeated++;
+    score += 10;
+    if (wave && typeof wave.onEnemyDefeated === 'function') wave.onEnemyDefeated();
+    if (window.hypeType && window.hypeType.debug) {
+        console.log('[hypeType] Enemy defeated:', enemy.word);
+    }
+}
+
 function gameLoop(currentTime) {
     if (!lastFrameTime) lastFrameTime = currentTime;
     const deltaTime = currentTime - lastFrameTime;
+    const dtSec = deltaTime / 1000;
 
     if (deltaTime >= frameInterval) {
         if (!gamePaused) {
-            update();
+            update(dtSec);
             draw();
         } else {
             // ポーズ中は描画のみ行う（ゲーム状態は更新しない）
