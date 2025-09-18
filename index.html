@@ -57,6 +57,24 @@
     </div>
     
     <canvas id="gameCanvas" style="display:none;"></canvas>
+
+    <!-- アップグレードオーバーレイ -->
+    <div id="upgradeOverlay" class="upgrade-overlay" style="display:none;">
+        <div class="upgrade-header">MAIN GUN</div>
+        <div class="upgrade-layout">
+            <div id="upgradeCanvasWrap" class="upgrade-canvas">
+                <svg id="upgradeEdges" class="upgrade-edges" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet"></svg>
+                <div id="upgradeNodes" class="upgrade-nodes"></div>
+            </div>
+            <div id="protocolSidebar" class="upgrade-side" style="display:none;">
+                <div class="panel-title">CURRENT PROTOCOLS</div>
+                <ol id="protocolList" class="protocol-list"></ol>
+                <button id="closeUpgrade" class="close-upgrade">CLOSE</button>
+            </div>
+            <div id="upgradePointsBadge" class="points-badge">Points: <span id="upgradePoints">0</span></div>
+            <div class="hint-row" style="position:absolute; left:20px; bottom:0;">Tab: PROTOCOLS &nbsp; &nbsp; Space: CONFIRM SELECTION</div>
+        </div>
+    </div>
     
     <!-- ポーズメニュー -->
     <div id="pauseMenu" class="pause-menu" style="display:none;">

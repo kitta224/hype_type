@@ -1,0 +1,54 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+  background: radial-gradient(ellipse at center, #f7f9fc, #e6ecf2);
+  color: #22343c;
+}
+.topbar {
+  height: 50px; display:flex; align-items:center; justify-content:space-between;
+  padding: 0 12px; background: rgba(50,60,70,0.95); color: #e9edf2;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+}
+.topbar .brand { font-weight: 700; letter-spacing: 1px; }
+.topbar .toolbar button, .filebtn { margin-right: 8px; }
+.topbar button, .filebtn { background:#2f88ff; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; }
+.topbar .filebtn { position:relative; overflow:hidden; display:inline-block; }
+.topbar .filebtn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.topbar .sep { display:inline-block; width:1px; height:18px; background:#78909c; margin:0 10px; }
+.status { opacity:0.85; }
+
+.workspace { display:flex; height: calc(100vh - 50px); }
+.side { width: 280px; padding: 12px; overflow:auto; }
+.side.left { border-right: 1px solid #d0d9e2; }
+.side.right { border-left: 1px solid #d0d9e2; }
+.panel { background:#fff; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,0.08); padding:12px; margin-bottom:12px; }
+.panel-title { font-weight:700; margin-bottom:10px; color:#5a6b75; }
+.row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.row.buttons { justify-content:space-between; }
+.row input[type=text], .row input[type=number], .row textarea, select { flex:1; padding:6px 8px; border:1px solid #cfd8e3; border-radius:6px; }
+.hint { font-size: 12px; color:#6b7f8a; }
+.help { margin:0; padding-left:18px; }
+
+.canvas-wrap { position:relative; flex:1; overflow:hidden; }
+.edges { position:absolute; inset:0; width:100%; height:100%; }
+.nodes { position:absolute; inset:0; width:1000px; height:600px; transform-origin:0 0; }
+.points-badge { position:absolute; top:10px; right:10px; background:rgba(50,60,70,0.92); color:#e9edf2; padding:6px 10px; border-radius:8px; font-weight:700; }
+
+/* Node card similar to game */
+.node-card { position:absolute; width: 240px; background: rgba(130,195,255,0.95); color:#0e2a3b; border-radius:10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); cursor:grab; }
+.node-card .head{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px 0 12px; }
+.node-card .title{ font-weight:700; font-size:14px; }
+.node-card .icon{ font-size:18px; }
+.node-card .body{ padding:6px 12px 12px 12px; font-size:12px; color:#134055; }
+.node-card .footer{ display:flex; justify-content:flex-end; padding:8px 12px 12px 12px; }
+.node-card .btn{ border:none; background:#102a3b; color:#e8f3ff; padding:6px 10px; border-radius:6px; }
+.node-card.locked{ filter:grayscale(0.3) opacity(0.8); }
+
+.edge-path{ fill:none; stroke:#7cc2ff; stroke-width:2; opacity:0.9; }
+
+.requires .req-item{ display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.requires select{ flex:1; }
+.effect-row{ display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+.effect-row .ef-target{ flex:1; }

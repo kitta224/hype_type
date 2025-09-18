@@ -9,6 +9,11 @@ import BGMManager from './bgmManager.js'; // BGM管理
 import effectManager from './effectManager.js'; // エフェクト管理
 import WeaponSystem from './weaponSystem.js'; // 武器管理
 import './debug.js';
+
+// Upgrade overlay bootstrap
+let upgradeData = null;
+let upgradePoints = 0;
+let acquiredUpgrades = new Set();
 /**
  * テーマを初期化する関数
  * @param {boolean} isDark - ダークテーマかどうか
@@ -212,6 +217,17 @@ const bgmManager = new BGMManager();
 async function loadAndSetWordLists() {
     wordLists = await loadWordLists();
     updateCurrentWordList();
+}
+
+// アップグレード定義を読み込み
+async function loadUpgradeData() {
+    try {
+        const res = await fetch('jsons/upgrades.json');
+        upgradeData = await res.json();
+    } catch (e) {
+        console.error('Failed to load upgrades.json', e);
+        upgradeData = { trees: [] };
+    }
 }
 
 function updateCurrentWordList() {
@@ -519,6 +535,271 @@ function killEnemy(enemy) {
     }
 }
 
+// Upgrade overlay functions
+function openUpgradeOverlay() {
+    const overlay = document.getElementById('upgradeOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'block';
+    gamePaused = true;
+    updatePauseMenu();
+    updateUpgradeSidePanel();
+    if (window.__needUpgradeLayout) { window.__needUpgradeLayout = false; buildUpgradeUI(); }
+}
+function toggleProtocols() {
+    const side = document.getElementById('protocolSidebar');
+    if (!side) return;
+    side.style.display = (side.style.display === 'none' || !side.style.display) ? 'block' : 'none';
+}
+function closeUpgradeOverlay() {
+    const overlay = document.getElementById('upgradeOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'none';
+    gamePaused = false;
+    updatePauseMenu();
+}
+function updateUpgradeSidePanel() {
+    const el = document.getElementById('upgradePoints');
+    if (el) el.textContent = String(upgradePoints);
+}
+function buildUpgradeUI() {
+    const nodesRoot = document.getElementById('upgradeNodes');
+    const edgesSvg = document.getElementById('upgradeEdges');
+    if (!nodesRoot || !edgesSvg || !upgradeData || !upgradeData.trees || !upgradeData.trees.length) return;
+    nodesRoot.innerHTML = '';
+    edgesSvg.innerHTML = '';
+    const tree = upgradeData.trees[0];
+
+    // fixed logical layout size to avoid display:none issues
+    const LAYOUT_W = 1000, LAYOUT_H = 600;
+    nodesRoot.style.width = LAYOUT_W + 'px';
+    nodesRoot.style.height = LAYOUT_H + 'px';
+
+    // Zoom/Pan support
+    const wrap = document.getElementById('upgradeCanvasWrap');
+    let scale = 1, ox = 0, oy = 0, dragging=false, sx=0, sy=0;
+    function applyTransform(){
+        nodesRoot.style.transform = `translate(${ox}px, ${oy}px) scale(${scale})`;
+        // Redraw edges in SVG coords (independent of CSS transforms)
+        drawEdges();
+    }
+    if (wrap) {
+        wrap.onwheel = (ev)=>{ ev.preventDefault(); const ds = Math.exp(-ev.deltaY*0.001); scale = Math.max(0.6, Math.min(2.0, scale*ds)); applyTransform(); };
+        wrap.onmousedown = (ev)=>{ dragging=true; sx=ev.clientX; sy=ev.clientY; };
+        window.onmouseup = ()=>{ dragging=false; };
+        window.onmousemove = (ev)=>{ if(!dragging) return; ox += ev.clientX - sx; oy += ev.clientY - sy; sx=ev.clientX; sy=ev.clientY; applyTransform(); };
+    }
+
+    // Map for ids (edges drawn after layout) + compute layers and layout positions
+    const byId = new Map();
+    tree.nodes.forEach(n => byId.set(n.id, n));
+    const layerCache = new Map();
+    function getLayer(n){
+        if (!n) return 0;
+        if (layerCache.has(n.id)) return layerCache.get(n.id);
+        const req = n.requires || [];
+        let L = 0;
+        if (req.length>0) {
+            L = Math.max(0, ...req.map(pid => getLayer(byId.get(pid)))) + 1;
+        }
+        layerCache.set(n.id, L);
+        return L;
+    }
+    tree.nodes.forEach(n => getLayer(n));
+    const maxLayer = Math.max(0, ...Array.from(layerCache.values()));
+    const layoutPos = new Map();
+    for (let L=0; L<=maxLayer; L++){
+        const group = tree.nodes.filter(n => layerCache.get(n.id) === L);
+        const count = Math.max(1, group.length);
+        const marginX = 80, marginY = 60;
+        const y = marginY + (L+0.5) * ((LAYOUT_H - marginY*2) / (maxLayer+1));
+        group.forEach((n, idx) => {
+            const x = marginX + (idx+1) * ((LAYOUT_W - marginX*2) / (count+1));
+            layoutPos.set(n.id, { x, y });
+        });
+    }
+
+    // Create nodes
+    const cards = [];
+    tree.nodes.forEach(n => {
+        const card = document.createElement('div');
+        card.className = 'node-card';
+        card.dataset.nodeId = n.id;
+        const pos = layoutPos.get(n.id) || { x: LAYOUT_W/2, y: LAYOUT_H/2 };
+        card.style.left = pos.x + 'px';
+        card.style.top = pos.y + 'px';
+
+        const head = document.createElement('div');
+        head.className = 'head';
+        const title = document.createElement('div');
+        title.className = 'title';
+        title.textContent = n.name;
+        const icon = document.createElement('div');
+        icon.className = 'icon';
+        icon.textContent = n.icon || '';
+        head.appendChild(title);
+        head.appendChild(icon);
+
+        const body = document.createElement('div');
+        body.className = 'body';
+        body.textContent = n.description || '';
+
+        const foot = document.createElement('div');
+        foot.className = 'footer';
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = acquiredUpgrades.has(n.id) ? 'OWNED' : (canPurchaseNode(n) ? 'SELECT' : 'LOCKED');
+        btn.disabled = !canPurchaseNode(n) || acquiredUpgrades.has(n.id);
+        btn.addEventListener('click', () => {
+            if (!canPurchaseNode(n)) return;
+            acquireNode(n);
+            buildUpgradeUI();
+            updateUpgradeSidePanel();
+        });
+        foot.appendChild(btn);
+
+        card.appendChild(head);
+        card.appendChild(body);
+        card.appendChild(foot);
+
+        if (!canPurchaseNode(n)) card.classList.add('locked');
+        if (acquiredUpgrades.has(n.id)) card.classList.add('acquired');
+
+        nodesRoot.appendChild(card);
+        // center anchor to card center
+        const cw = card.offsetWidth || 240, ch = card.offsetHeight || 120;
+        card.style.left = (parseFloat(card.style.left) - cw / 2) + 'px';
+        card.style.top = (parseFloat(card.style.top) - ch / 2) + 'px';
+        cards.push(card);
+    });
+
+    function runLayout() {
+        // skip if container not yet visible
+        if (nodesRoot.offsetWidth === 0 || nodesRoot.offsetHeight === 0) return;
+        for (let iter=0; iter<50; iter++) {
+            let moved = false;
+            for (let i=0;i<cards.length;i++){
+                for (let j=i+1;j<cards.length;j++){
+                    const a=cards[i], b=cards[j];
+                    const ar={left:a.offsetLeft, top:a.offsetTop, right:a.offsetLeft+a.offsetWidth, bottom:a.offsetTop+a.offsetHeight};
+                    const br={left:b.offsetLeft, top:b.offsetTop, right:b.offsetLeft+b.offsetWidth, bottom:b.offsetTop+b.offsetHeight};
+                    const overlapX = Math.max(0, Math.min(ar.right, br.right) - Math.max(ar.left, br.left));
+                    const overlapY = Math.max(0, Math.min(ar.bottom, br.bottom) - Math.max(ar.top, br.top));
+                    if (overlapX>0 && overlapY>0){
+                        const dx = (ar.left+ar.right)/2 - (br.left+br.right)/2;
+                        const dy = (ar.top+ar.bottom)/2 - (br.top+br.bottom)/2;
+                        const pushX = (dx>=0?1:-1) * (overlapX/2 + 2);
+                        const pushY = (dy>=0?1:-1) * (overlapY/2 + 2);
+                        a.style.left = (a.offsetLeft + pushX) + 'px';
+                        a.style.top  = (a.offsetTop  + pushY) + 'px';
+                        b.style.left = (b.offsetLeft - pushX) + 'px';
+                        b.style.top  = (b.offsetTop  - pushY) + 'px';
+                        moved = true;
+                    }
+                }
+            }
+            if (!moved) break;
+        }
+        drawEdges();
+    }
+
+    // Draw orthogonal edges (subway style) based on final card positions
+    function drawEdges() {
+        edgesSvg.innerHTML = '';
+        const cardElById = new Map();
+        cards.forEach(el => cardElById.set(el.dataset.nodeId, el));
+        const pt = edgesSvg.createSVGPoint();
+        function toSvg(x, y){
+            pt.x = x; pt.y = y;
+            const ctm = edgesSvg.getScreenCTM();
+            if (!ctm) return { x, y };
+            const p = pt.matrixTransform(ctm.inverse());
+            return { x: p.x, y: p.y };
+        }
+        tree.nodes.forEach(n => {
+            if (!Array.isArray(n.requires)) return;
+            const toEl = cardElById.get(n.id);
+            if (!toEl) return;
+            const tr = toEl.getBoundingClientRect();
+            const c2 = toSvg(tr.left + tr.width/2, tr.top + tr.height/2);
+            n.requires.forEach(pid => {
+                const fromEl = cardElById.get(pid);
+                if (!fromEl) return;
+                const fr = fromEl.getBoundingClientRect();
+                const c1 = toSvg(fr.left + fr.width/2, fr.top + fr.height/2);
+                const midx = (c1.x + c2.x) / 2;
+                const d = `M ${c1.x} ${c1.y} L ${midx} ${c1.y} L ${midx} ${c2.y} L ${c2.x} ${c2.y}`;
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('class', 'edge-path');
+                path.setAttribute('d', d);
+                edgesSvg.appendChild(path);
+            });
+        });
+    }
+
+    // Render edges now (no repulsion; tree layout avoids overlap)
+    drawEdges();
+
+    // Side panel basics
+    const closeBtn = document.getElementById('closeUpgrade');
+    if (closeBtn) closeBtn.onclick = closeUpgradeOverlay;
+}
+
+function canPurchaseNode(node) {
+    if (acquiredUpgrades.has(node.id)) return false;
+    if ((node.cost || 0) > upgradePoints) return false;
+    const req = node.requires || [];
+    return req.every(id => acquiredUpgrades.has(id));
+}
+
+function acquireNode(node) {
+    upgradePoints -= (node.cost || 0);
+    acquiredUpgrades.add(node.id);
+    applyNodeEffects(node);
+    // append to protocols list
+    const list = document.getElementById('protocolList');
+    if (list) { const li=document.createElement('li'); li.textContent=node.name; list.appendChild(li); }
+}
+
+function applyNodeEffects(node) {
+    if (!node.effects) return;
+    node.effects.forEach(e => {
+        if (e.kind === 'stat' && e.target && (e.op === 'add' || e.op === 'mul')) {
+            // weapon.* stats
+            if (e.target.startsWith('weapon.')) {
+                const key = e.target.slice('weapon.'.length);
+                if (e.op === 'add') {
+                    window.hypeType.weapon.setBase(key, (window.hypeType.weapon.base[key] || 0) + e.value);
+                } else if (e.op === 'mul') {
+                    window.hypeType.weapon.setMul(key, (window.hypeType.weapon.mul[key] || 1) * e.value);
+                }
+            }
+        } else if (e.kind === 'special') {
+            if ((e.type === 'status_tuning' || e.type === 'status_base_add') && e.path) {
+                const [stype, skey] = e.path.split('.');
+                if (e.type === 'status_tuning') {
+                    // multiply or add tuning value
+                    if (e.op === 'mul') {
+                        Enemy.statusTuning[stype][skey] = (Enemy.statusTuning[stype][skey] || 1) * e.value;
+                    } else if (e.op === 'add') {
+                        Enemy.statusTuning[stype][skey] = (Enemy.statusTuning[stype][skey] || 0) + e.value;
+                    }
+                } else if (e.type === 'status_base_add') {
+                    // change absolute base
+                    if (e.op === 'mul') {
+                        Enemy.statusBase[stype][skey] = (Enemy.statusBase[stype][skey] || 0) * e.value;
+                    } else if (e.op === 'add') {
+                        Enemy.statusBase[stype][skey] = (Enemy.statusBase[stype][skey] || 0) + e.value;
+                    }
+                }
+            }
+        }
+    });
+}
+
+// add points on kill
+const __origOnEnemyDefeated = (typeof wave.onEnemyDefeated === 'function') ? wave.onEnemyDefeated.bind(wave) : null;
+wave.onEnemyDefeated = function(){ if(__origOnEnemyDefeated) __origOnEnemyDefeated(); upgradePoints += 1; updateUpgradeSidePanel(); };
+
 function gameLoop(currentTime) {
     if (!lastFrameTime) lastFrameTime = currentTime;
     const deltaTime = currentTime - lastFrameTime;
@@ -562,11 +843,35 @@ const typeSystem = new TypeSystem();
 
 document.addEventListener('keydown', (e) => {
     if (!inputEnabled) return;
+
+    // Space: open/close upgrade overlay (confirm/close)
+    if (e.code === 'Space') {
+        e.preventDefault();
+        const overlay = document.getElementById('upgradeOverlay');
+        if (!overlay) return;
+        if (overlay.style.display === 'block') { closeUpgradeOverlay(); }
+        else { openUpgradeOverlay(); }
+        return;
+    }
+
+    // Tab: toggle protocols sidebar
+    if (e.code === 'Tab') {
+        e.preventDefault();
+        toggleProtocols();
+        return;
+    }
     
-    // ESCキーでゲームの一時停止/再開
+    // ESCキー: 強化画面中は再開しない。オーバーレイを閉じるのみ。
     if (e.key === 'Escape') {
-        gamePaused = !gamePaused;
-        updatePauseMenu();
+        const overlay = document.getElementById('upgradeOverlay');
+        if (overlay && overlay.style.display === 'block') {
+            overlay.style.display = 'none';
+            // ゲームの一時停止状態は維持（再開しない）
+            updatePauseMenu();
+        } else {
+            gamePaused = !gamePaused;
+            updatePauseMenu();
+        }
         return;
     }
 
@@ -712,6 +1017,13 @@ startButton.addEventListener('click', () => {
 
         // BGM再生開始
         bgmManager.start();
+
+        // アップグレードデータのロードとUI構築（自動オープンはしない）
+        if (!upgradeData) {
+            loadUpgradeData().then(() => buildUpgradeUI());
+        } else {
+            buildUpgradeUI();
+        }
     }
 });
 
