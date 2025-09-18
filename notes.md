@@ -10,24 +10,38 @@
 ## 2. ディレクトリ構成
 ```
 proj/hype_type/
-├─ index.html            … 画面レイアウト & 設定 UI
-├─ style.css             … テーマ・UI・キャンバスの CSS
-├─ scripts/              … ゲームロジック (ES2020)
-│  ├─ script.js          … メインエントリ / ゲームループ / UI
-│  ├─ enemy.js           … 敵クラス
-│  ├─ bullet.js          … 弾クラス
-│  ├─ wave.js            … ウェーブ管理
-│  ├─ wordManager.js     … 単語リスト管理
-│  ├─ typesys.js         … タイピング判定ユーティリティ
-│  ├─ effectManager.js   … エフェクト生成・管理
-│  ├─ bgmManager.js      … BGM 再生制御
-│  ├─ se.js              … 効果音管理
-│  └─ debug.js           … ブラウザコンソール用デバッグ API
-├─ jsons/                … 定義ファイル
-│  ├─ wordLists.json     … 難易度・言語別単語リスト
-│  └─ locales.json       … UI 文字列 (多言語対応)
-├─ BGM/, SE/             … 音声アセット
-└─ wordlists/            … 旧プレーンテキスト単語リスト
+├─ readme.md            … プロジェクト概要・使用方法
+├─ favicon.ico          … ファビコン
+├─ index.html           … 画面レイアウト & 設定 UI
+├─ style.css            … テーマ・UI・キャンバスの CSS
+├─ notes.md             … 開発・引き継ぎドキュメント
+├─ scripts/             … ゲームロジック (ES2020)
+│  ├─ script.js         … メインエントリ / ゲームループ / UI
+│  ├─ enemy.js          … 敵クラス
+│  ├─ bullet.js         … 弾クラス
+│  ├─ wave.js           … ウェーブ管理
+│  ├─ wordManager.js    … 単語リスト管理
+│  ├─ typesys.js        … タイピング判定ユーティリティ
+│  ├─ effectManager.js  … エフェクト生成・管理
+│  ├─ bgmManager.js     … BGM 再生制御
+│  ├─ se.js             … 効果音管理
+│  ├─ weaponSystem.js   … 武器システム管理
+│  └─ debug.js          … ブラウザコンソール用デバッグ API
+├─ jsons/               … 定義ファイル
+│  ├─ wordLists.json    … 難易度・言語別単語リスト
+│  ├─ locales.json      … UI 文字列 (多言語対応)
+│  └─ upgrades.json     … アップグレード定義
+├─ editer/              … エディタ関連ファイル
+│  ├─ editor.js         … エディタ機能
+│  ├─ index.html        … エディタページ
+│  └─ style.css         … エディタスタイル
+├─ BGM/                 … BGM アセット
+│  └─ lofi/             … ローファイ BGM ファイル (001.mp3 ~ 010.mp3)
+├─ SE/                  … 効果音アセット
+├─ wordlists/           … 旧プレーンテキスト単語リスト
+├─ .github/             … GitHub Actions などの CI/CD 設定
+├─ .qodo/               … (不明: 開発補助ファイル)
+└─ .trae/               … (不明: 開発補助ファイル)
 ```
 
 ---
@@ -37,7 +51,7 @@ proj/hype_type/
 
 * Audio 再生: `<audio>` 要素 + JS 制御
 * 設定永続化: `localStorage`
-* 多言語/データ読込: `fetch()` による JSON ロード
+* 多言語/データ読込: `fetch()` による JSON ロード (wordLists.json, locales.json, upgrades.json)
 
 ---
 
@@ -75,6 +89,9 @@ proj/hype_type/
 
 ### 4.8 debug.js
 - `window.hypeType.cmd('debug on')` などでログ出力を切替可能。
+
+### 4.9 weaponSystem.js
+- 武器の種類、アップグレード、発射ロジックを管理。`upgrades.json` と連携して武器強化を実装。
 
 ---
 
@@ -126,5 +143,7 @@ proj/hype_type/
 * **単語リスト追加**: `jsons/wordLists.json` に追記。
 * **多言語拡張**: `jsons/locales.json` と UI 文字列同期。
 * **デバッグ**: `debug.js` でコンソール操作。
+* **アップグレードシステム**: `jsons/upgrades.json` と `scripts/weaponSystem.js` で管理。
+* **エディタ機能**: `editer/` ディレクトリ内のファイルで実装。
 
 以上が現行バージョンの全体像です。
