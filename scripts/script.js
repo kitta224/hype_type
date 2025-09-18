@@ -7,6 +7,7 @@ import TypeSystem from './typesys.js'; // タイピング入力システム
 import se from './se.js'; // 効果音管理
 import BGMManager from './bgmManager.js'; // BGM管理
 import effectManager from './effectManager.js'; // エフェクト管理
+import WeaponSystem from './weaponSystem.js'; // 武器管理
 import './debug.js';
 /**
  * テーマを初期化する関数
@@ -166,6 +167,12 @@ let player = {
 };
 // プレイヤーの攻撃力（10 が基準、弾の damage は attackPower）
 player.attackPower = 10;
+
+// 武器管理（プレイヤーの発射特性）
+const weapon = new WeaponSystem();
+// expose for console-based tweaking
+window.hypeType = window.hypeType || {};
+window.hypeType.weapon = weapon;
 
 
 
@@ -536,27 +543,18 @@ function gameLoop(currentTime) {
  */
 function fireBurstAtEnemy(targetEnemy) {
     if (!targetEnemy) return;
-    const angle = Math.atan2(targetEnemy.y - player.y, targetEnemy.x - player.x);
-    for (let i = 0; i < 3; i++) {
-        setTimeout(() => {
-            const colors = getCanvasColors();
-            const b = new Bullet(
-                player.x,
-                player.y,
-                Math.cos(angle) * BULLET_SPEED,
-                Math.sin(angle) * BULLET_SPEED,
-                player.attackPower,
-                colors.bullet
-            );
-            // new Bullet signature: (x,y,vx,vy,damage,color)
-            b.color = colors.bullet;
+    const colors = getCanvasColors();
+    weapon.fireAtTarget(
+        player,
+        targetEnemy,
+        (b) => {
             bullets.push(b);
-
             if (window.hypeType && window.hypeType.debug) {
-                console.log(`[hypeType] Fired at '${targetEnemy.word}' damage=${player.attackPower}`, { targetEnemy, bullet: b });
+                console.log(`[hypeType] Fired at '${targetEnemy.word}' damage=${b.damage}`, { targetEnemy, bullet: b });
             }
-        }, i * 100);
-    }
+        },
+        colors
+    );
 }
 
 // タイピング入力システムの初期化

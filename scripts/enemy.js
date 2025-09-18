@@ -35,6 +35,47 @@ export class Enemy {
         return dist < playerRadius + enemyRadius;
     }
 
+    // ベース+チューニングから実効デフォルト値を算出
+    _getEffectiveDefaults(type) {
+        const B = Enemy.statusBase;
+        const T = Enemy.statusTuning;
+        switch (type) {
+            case 'burn': {
+                const b = B.burn, t = T.burn;
+                return {
+                    durationSec: (b.durationSec ?? 3.0) * (t.durationMul ?? 1),
+                    dps: (b.dps ?? 4.0) * (t.dpsMul ?? 1)
+                };
+            }
+            case 'chill': {
+                const b = B.chill, t = T.chill;
+                return {
+                    durationSec: (b.durationSec ?? 4.0) * (t.durationMul ?? 1),
+                    slowFactor: Math.min(1, Math.max(0, (b.slowFactor ?? 0.5) * (t.slowFactorMul ?? 1))),
+                    baseDps: (b.baseDps ?? 0.5) * (t.baseDpsMul ?? 1),
+                    dpsGrowthPerSec: (b.dpsGrowthPerSec ?? 0.5) * (t.dpsGrowthMul ?? 1),
+                    freezeThresholdSec: ((b.freezeBaseSec ?? 1.5) * (t.freezeBaseSecMul ?? 1)) + ((b.freezePerHp ?? 0.02) * (t.freezePerHpMul ?? 1)) * this.baseMaxHp,
+                    freezeDurationSec: (b.freezeDurationSec ?? 1.5) * (t.freezeDurationMul ?? 1)
+                };
+            }
+            case 'freeze': {
+                const b = B.freeze, t = T.freeze;
+                return {
+                    durationSec: (b.durationSec ?? 1.5) * (t.durationMul ?? 1)
+                };
+            }
+            case 'bleed': {
+                const b = B.bleed, t = T.bleed;
+                return {
+                    durationSec: (b.durationSec ?? 6.0) * (t.durationMul ?? 1),
+                    percentPerSec: (b.percentPerSec ?? 0.05) * (t.percentPerSecMul ?? 1),
+                    minRatio: Math.min(1, Math.max(0, (b.minRatio ?? 0.1) * (t.minRatioMul ?? 1)))
+                };
+            }
+        }
+        return {};
+    }
+
     /**
      * 状態異常を付与/更新する
      * @param {('burn'|'chill'|'freeze'|'bleed')} type
@@ -43,9 +84,9 @@ export class Enemy {
     applyStatus(type, opts = {}) {
         switch (type) {
             case 'burn': {
-                const duration = opts.durationSec ?? 3.0;
-                const dps = opts.dps ?? 4.0; // 強い継続ダメージ
-                // 既存より強い/長い場合は上書き、そうでなければ延長
+                const base = this._getEffectiveDefaults('burn');
+                const duration = (opts.durationSec != null) ? opts.durationSec : base.durationSec;
+                const dps = (opts.dps != null) ? opts.dps : base.dps; // 継続ダメージ
                 if (this.status.burn) {
                     this.status.burn.remaining = Math.max(this.status.burn.remaining, duration);
                     this.status.burn.dps = Math.max(this.status.burn.dps, dps);
@@ -55,17 +96,15 @@ export class Enemy {
                 break;
             }
             case 'chill': {
-                const duration = opts.durationSec ?? 4.0;
-                const slowFactor = Math.min(1, Math.max(0, opts.slowFactor ?? 0.5)); // 0..1
-                const baseDps = opts.baseDps ?? 1; // 弱い継続ダメージ
-                const dpsGrowthPerSec = opts.dpsGrowthPerSec ?? 0.5; // 経過時間で増加
-                const freezeThresholdSec = (opts.freezeThresholdSec != null)
-                    ? opts.freezeThresholdSec
-                    : Math.max(0, 1.5 + 0.5 * this.baseMaxHp); // HP比例の基準時間（例）
-                const canFreeze = duration >= freezeThresholdSec; // 指定継続が閾値未満なら凍結移行なし
-                const freezeDurationSec = opts.freezeDurationSec ?? 1.5;
+                const base = this._getEffectiveDefaults('chill');
+                const duration = (opts.durationSec != null) ? opts.durationSec : base.durationSec;
+                const slowFactor = Math.min(1, Math.max(0, (opts.slowFactor != null) ? opts.slowFactor : base.slowFactor));
+                const baseDps = (opts.baseDps != null) ? opts.baseDps : base.baseDps;
+                const dpsGrowthPerSec = (opts.dpsGrowthPerSec != null) ? opts.dpsGrowthPerSec : base.dpsGrowthPerSec;
+                const freezeThresholdSec = (opts.freezeThresholdSec != null) ? opts.freezeThresholdSec : base.freezeThresholdSec;
+                const canFreeze = duration >= freezeThresholdSec;
+                const freezeDurationSec = (opts.freezeDurationSec != null) ? opts.freezeDurationSec : base.freezeDurationSec;
                 if (this.status.chill) {
-                    // 延長/上書き
                     this.status.chill.remaining = Math.max(this.status.chill.remaining, duration);
                     this.status.chill.slowFactor = Math.min(this.status.chill.slowFactor, slowFactor);
                     this.status.chill.baseDps = Math.max(this.status.chill.baseDps, baseDps);
@@ -88,16 +127,17 @@ export class Enemy {
                 break;
             }
             case 'freeze': {
-                const duration = opts.durationSec ?? 5.0;
+                const base = this._getEffectiveDefaults('freeze');
+                const duration = (opts.durationSec != null) ? opts.durationSec : base.durationSec;
                 this.status.freeze = { remaining: duration };
-                // 凍結中は冷却を無効化
-                this.status.chill = null;
+                this.status.chill = null; // 凍結中は冷却を無効化
                 break;
             }
             case 'bleed': {
-                const duration = opts.durationSec ?? 6.0;
-                const percentPerSec = opts.percentPerSec ?? 0.05; // 1秒あたり基準Maxの5%低下
-                const minRatio = Math.min(1, Math.max(0, opts.minRatio ?? 0.1)); // スポーン時の10%まで
+                const base = this._getEffectiveDefaults('bleed');
+                const duration = (opts.durationSec != null) ? opts.durationSec : base.durationSec;
+                const percentPerSec = (opts.percentPerSec != null) ? opts.percentPerSec : base.percentPerSec;
+                const minRatio = Math.min(1, Math.max(0, (opts.minRatio != null) ? opts.minRatio : base.minRatio));
                 if (this.status.bleed) {
                     this.status.bleed.remaining = Math.max(this.status.bleed.remaining, duration);
                     this.status.bleed.percentPerSec = Math.max(this.status.bleed.percentPerSec, percentPerSec);
@@ -181,6 +221,29 @@ export class Enemy {
         };
     }
 }
+
+// ベース定義と倍率（後で強化要素で変更可能）
+// 数値は初期チューニング値（10倍スケールと整合）
+Enemy.statusBase = {
+    burn: { durationSec: 3.0, dps: 4.0 },
+    chill: {
+        durationSec: 4.0,
+        slowFactor: 0.5,
+        baseDps: 0.5,
+        dpsGrowthPerSec: 0.5,
+        freezeBaseSec: 1.5,
+        freezePerHp: 0.02,
+        freezeDurationSec: 1.5
+    },
+    freeze: { durationSec: 1.5 },
+    bleed: { durationSec: 6.0, percentPerSec: 0.05, minRatio: 0.1 }
+};
+Enemy.statusTuning = {
+    burn: { durationMul: 1, dpsMul: 1 },
+    chill: { durationMul: 1, slowFactorMul: 1, baseDpsMul: 1, dpsGrowthMul: 1, freezeBaseSecMul: 1, freezePerHpMul: 1, freezeDurationMul: 1 },
+    freeze: { durationMul: 1 },
+    bleed: { durationMul: 1, percentPerSecMul: 1, minRatioMul: 1 }
+};
 
 export function spawnEnemy(canvas, word, hp) {
     const ENEMY_RADIUS = 5;
