@@ -11,6 +11,7 @@ let acquiredUpgrades = new Set();
 window.hypeType = window.hypeType || {};
 window.hypeType.upgradePoints = upgradePoints;
 window.hypeType.acquiredUpgrades = acquiredUpgrades;
+window.hypeType.upgradeUI = null; // upgradeUIインスタンスを後で設定
 
 class UpgradeUI {
     constructor() {
@@ -341,6 +342,7 @@ class UpgradeUI {
 
     acquireNode(node) {
         upgradePoints -= (node.cost || 0);
+        window.hypeType.upgradePoints = upgradePoints; // グローバル参照も更新
         acquiredUpgrades.add(node.id);
         this.applyNodeEffects(node);
         // Append to protocols list
@@ -422,21 +424,27 @@ class UpgradeUI {
 
     // Integration with wave system
     setupWaveIntegration(wave) {
-        const __origOnEnemyDefeated = (typeof wave.onEnemyDefeated === 'function') ? wave.onEnemyDefeated.bind(wave) : null;
-        wave.onEnemyDefeated = function() {
-            if (__origOnEnemyDefeated) __origOnEnemyDefeated();
-            upgradePoints += 1;
-            this.updateUpgradeSidePanel();
-        }.bind(this);
+        // ポイント加算はwave.jsのadvanceWave関数で行うため、ここでは何もしない
+        // 必要に応じて他のwave関連の統合処理をここに追加可能
     }
 
     // 初期ポイントを設定
     setInitialPoints(points) {
         upgradePoints = points;
+        window.hypeType.upgradePoints = upgradePoints; // グローバル参照も更新
+        this.updateUpgradeSidePanel();
+    }
+
+    // ポイントを追加
+    addPoints(points) {
+        upgradePoints += points;
+        window.hypeType.upgradePoints = upgradePoints; // グローバル参照も更新
         this.updateUpgradeSidePanel();
     }
 }
 
 const upgradeUI = new UpgradeUI();
+// グローバル参照を設定
+window.hypeType.upgradeUI = upgradeUI;
 export default upgradeUI;
 export { upgradeData, upgradePoints, acquiredUpgrades };

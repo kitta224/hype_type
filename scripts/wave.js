@@ -38,6 +38,18 @@ function onEnemyDefeated() {
 function advanceWave() {
     waveState.currentWave++;
     waveState.killsThisWave = 0;
+
+    // ウェーブクリア時のアップグレードポイント加算
+    if (typeof window !== 'undefined' && window.hypeType && window.hypeType.upgradePoints !== undefined) {
+        // upgradeUIのaddPointsメソッドを使用してポイントを追加
+        if (window.hypeType.upgradeUI && typeof window.hypeType.upgradeUI.addPoints === 'function') {
+            window.hypeType.upgradeUI.addPoints(2);
+        } else {
+            // fallback: 直接グローバル変数を更新
+            window.hypeType.upgradePoints += 2;
+        }
+    }
+
     // 将来的に波ごとのイベントトリガやボス解禁などをここに追加
 }
 

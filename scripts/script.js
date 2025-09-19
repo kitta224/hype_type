@@ -254,6 +254,12 @@ function draw() {
     // BGM情報表示（右下）
     bgmManager.drawBGMInfo(ctx, canvas);
 
+    // FPSカウンター表示（左下）
+    ctx.fillStyle = colors.hpText; // テーマに対応した色を使用
+    ctx.font = `${12 * canvasScale}px Arial`; // 小さめのフォント
+    ctx.textAlign = 'left';
+    ctx.fillText(`FPS: ${fpsDisplay}`, 10 * canvasScale, canvas.height - 10 * canvasScale);
+
     // エフェクトの描画
     effectManager.draw(ctx);
 }
@@ -406,6 +412,11 @@ const FPS = 60;
 const frameInterval = 1000 / FPS;
 let lastFrameTime = 0;
 
+// FPS測定用変数
+let fpsCounter = 0;
+let fpsDisplay = 60;
+let lastFpsUpdateTime = 0;
+
 /**
  * 敵撃破処理（弾・DoT共通）
  */
@@ -428,6 +439,15 @@ function gameLoop(currentTime) {
     if (!lastFrameTime) lastFrameTime = currentTime;
     const deltaTime = currentTime - lastFrameTime;
     const dtSec = deltaTime / 1000;
+
+    // FPS測定
+    fpsCounter++;
+    if (currentTime - lastFpsUpdateTime >= 1000) { // 1秒ごとに更新
+        const rawFps = fpsCounter / ((currentTime - lastFpsUpdateTime) / 1000);
+        fpsDisplay = parseFloat(rawFps.toFixed(1)); // 小数点第1位まで表示
+        fpsCounter = 0;
+        lastFpsUpdateTime = currentTime;
+    }
 
     if (deltaTime >= frameInterval) {
         if (!window.gamePaused) {
@@ -644,6 +664,11 @@ function startGame() {
         lastEnemySpawnTime = Date.now();
         usedWords = [];
         inputEnabled = true;
+
+        // FPSカウンター初期化
+        fpsCounter = 0;
+        fpsDisplay = 60;
+        lastFpsUpdateTime = Date.now();
 
         // ゲームループが多重起動しないように一度だけ開始
         if (!window._gameLoopRunning) {
