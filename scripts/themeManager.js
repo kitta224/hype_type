@@ -52,6 +52,7 @@ function applyCanvasColors() {
     if (typeof bullets !== 'undefined') bullets.forEach(b => b.color = colors.bullet);
 }
 
+
 function applyThemeFromPreference(pref) {
     if (pref === 'dark') return setTheme(true);
     if (pref === 'light') return setTheme(false);

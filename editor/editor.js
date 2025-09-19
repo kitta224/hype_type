@@ -22,8 +22,6 @@ const propIcon = $('#propIcon');
 const propDesc = $('#propDesc');
 const propCost = $('#propCost');
 const propMaxLv = $('#propMaxLv');
-const propPosX = $('#propPosX');
-const propPosY = $('#propPosY');
 const requiresList = $('#requiresList');
 const reqLogic = $('#reqLogic');
 const effectsList = $('#effectsList');
@@ -51,39 +49,119 @@ function refreshTreeSelect(){
 }
 
 function rebuildNodes(){
-  nodesRoot.innerHTML = '';
-  nodesRoot.style.width = LAYOUT_W + 'px';
-  nodesRoot.style.height = LAYOUT_H + 'px';
-  const t = getTree();
-  // create cards
-  t.nodes.forEach(n => {
-    // init defaults
-    n.position = n.position || { x: Math.random()*0.8+0.1, y: Math.random()*0.8+0.1 };
-    if (Array.isArray(n.requires)) {
-        // 旧形式を新形式に変換
-        n.requires = { and: n.requires };
+   nodesRoot.innerHTML = '';
+   nodesRoot.style.width = LAYOUT_W + 'px';
+   nodesRoot.style.height = LAYOUT_H + 'px';
+   const t = getTree();
+
+   // レイヤー計算（upgradeUI.js と同じロジック）
+   const byId = new Map();
+   t.nodes.forEach(n => byId.set(n.id, n));
+   const layerCache = new Map();
+   function getLayer(n) {
+       if (!n) return 0;
+       if (layerCache.has(n.id)) return layerCache.get(n.id);
+       const req = n.requires || {};
+       let deps = [];
+       if (Array.isArray(req)) {
+           deps = req; // 旧形式
+       } else if (req.and) {
+           deps = req.and;
+       } else if (req.or) {
+           deps = req.or;
+       }
+       let L = 0;
+       if (deps.length > 0) {
+           L = Math.max(0, ...deps.map(pid => getLayer(byId.get(pid)))) + 1;
+       }
+       layerCache.set(n.id, L);
+       return L;
+   }
+   t.nodes.forEach(n => getLayer(n));
+   const maxLayer = Math.max(0, ...Array.from(layerCache.values()));
+   const layoutPos = new Map();
+   for (let L = 0; L <= maxLayer; L++) {
+       const group = t.nodes.filter(n => layerCache.get(n.id) === L);
+       const count = Math.max(1, group.length);
+       const marginX = 150, marginY = 120;
+       const layerHeight = 180;
+       const y = marginY + L * layerHeight;
+       group.forEach((n, idx) => {
+           const nodeSpacing = 250;
+           const totalWidth = (count - 1) * nodeSpacing;
+           const startX = (LAYOUT_W - totalWidth) / 2;
+           const x = startX + idx * nodeSpacing;
+           layoutPos.set(n.id, { x, y });
+       });
+   }
+
+   // create cards
+   const cards = [];
+   t.nodes.forEach(n => {
+       // init defaults
+       if (Array.isArray(n.requires)) {
+           // 旧形式を新形式に変換
+           n.requires = { and: n.requires };
+       }
+       n.requires = n.requires || { and: [] };
+       n.effects = n.effects || [];
+
+       const el = tplNode.content.firstElementChild.cloneNode(true);
+       el.dataset.nodeId = n.id;
+       el.querySelector('.title').textContent = n.name || n.id;
+       el.querySelector('.icon').textContent = n.icon || '⚙️';
+       el.querySelector('.body').textContent = n.description || '';
+
+       // 自動配置を使用
+       const pos = layoutPos.get(n.id);
+       if (pos) {
+           el.style.left = `${pos.x}px`;
+           el.style.top = `${pos.y}px`;
+       } else {
+           el.style.left = `${LAYOUT_W / 2}px`;
+           el.style.top = `${LAYOUT_H / 2}px`;
+       }
+
+       el.addEventListener('mousedown', startDrag);
+       el.addEventListener('click', () => selectNode(n.id));
+
+       nodesRoot.appendChild(el);
+       cards.push(el);
+   });
+
+   // 自動レイアウト実行
+   runLayout(cards);
+   drawEdges();
+   updateStats();
+}
+
+function runLayout(cards) {
+    // Skip if not visible
+    if (nodesRoot.offsetWidth === 0 || nodesRoot.offsetHeight === 0) return;
+    for (let iter = 0; iter < 50; iter++) {
+        let moved = false;
+        for (let i = 0; i < cards.length; i++) {
+            for (let j = i + 1; j < cards.length; j++) {
+                const a = cards[i], b = cards[j];
+                const ar = { left: a.offsetLeft, top: a.offsetTop, right: a.offsetLeft + a.offsetWidth, bottom: a.offsetTop + a.offsetHeight };
+                const br = { left: b.offsetLeft, top: b.offsetTop, right: b.offsetLeft + b.offsetWidth, bottom: b.offsetTop + b.offsetHeight };
+                const overlapX = Math.max(0, Math.min(ar.right, br.right) - Math.max(ar.left, br.left));
+                const overlapY = Math.max(0, Math.min(ar.bottom, br.bottom) - Math.max(ar.top, br.top));
+                if (overlapX > 0 && overlapY > 0) {
+                    const dx = (ar.left + ar.right) / 2 - (br.left + br.right) / 2;
+                    const dy = (ar.top + ar.bottom) / 2 - (br.top + br.bottom) / 2;
+                    const pushX = (dx >= 0 ? 1 : -1) * (overlapX / 2 + 20);
+                    const pushY = (dy >= 0 ? 1 : -1) * (overlapY / 2 + 20);
+                    a.style.left = (a.offsetLeft + pushX) + 'px';
+                    a.style.top = (a.offsetTop + pushY) + 'px';
+                    b.style.left = (b.offsetLeft - pushX) + 'px';
+                    b.style.top = (b.offsetTop - pushY) + 'px';
+                    moved = true;
+                }
+            }
+        }
+        if (!moved) break;
     }
-    n.requires = n.requires || { and: [] };
-    n.effects = n.effects || [];
-
-    const el = tplNode.content.firstElementChild.cloneNode(true);
-    el.dataset.nodeId = n.id;
-    el.querySelector('.title').textContent = n.name || n.id;
-    el.querySelector('.icon').textContent = n.icon || '⚙️';
-    el.querySelector('.body').textContent = n.description || '';
-
-    const px = n.position.x * LAYOUT_W - el.offsetWidth/2;
-    const py = n.position.y * LAYOUT_H - el.offsetHeight/2;
-    el.style.left = `${px}px`;
-    el.style.top = `${py}px`;
-
-    el.addEventListener('mousedown', startDrag);
-    el.addEventListener('click', () => selectNode(n.id));
-
-    nodesRoot.appendChild(el);
-  });
-  drawEdges();
-  updateStats();
 }
 
 function drawEdges(){
@@ -95,30 +173,60 @@ function drawEdges(){
   const toSvg = (x,y) => {
     pt.x = x; pt.y = y;
     const ctm = edgesSvg.getScreenCTM();
-    if (!ctm) return { x, y };
+    if (!ctm) {
+      // SVGがまだレンダリングされていない場合、相対座標を使用
+      const rect = edgesSvg.getBoundingClientRect();
+      return { x: x - rect.left, y: y - rect.top };
+    }
     const p = pt.matrixTransform(ctm.inverse());
     return { x: p.x, y: p.y };
   };
 
   const t = getTree();
   t.nodes.forEach(n => {
-    if (!Array.isArray(n.requires)) return;
-    const toEl = cardById.get(n.id);
-    if (!toEl) return;
-    const tr = toEl.getBoundingClientRect();
-    const c2 = toSvg(tr.left + tr.width/2, tr.top + tr.height/2);
-    n.requires.forEach(pid => {
-      const fromEl = cardById.get(pid);
-      if (!fromEl) return;
-      const fr = fromEl.getBoundingClientRect();
-      const c1 = toSvg(fr.left + fr.width/2, fr.top + fr.height/2);
-      const midx = (c1.x + c2.x) / 2;
-      const d = `M ${c1.x} ${c1.y} L ${midx} ${c1.y} L ${midx} ${c2.y} L ${c2.x} ${c2.y}`;
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('class', 'edge-path');
-      path.setAttribute('d', d);
-      edgesSvg.appendChild(path);
-    });
+      const req = n.requires || {};
+      let deps = [];
+      if (Array.isArray(req)) {
+          deps = req; // 旧形式
+      } else if (req.and) {
+          deps = req.and;
+      } else if (req.or) {
+          deps = req.or;
+      }
+      if (deps.length === 0) return;
+      const toEl = cardById.get(n.id);
+      if (!toEl) return;
+      const tr = toEl.getBoundingClientRect();
+      const c2 = toSvg(tr.left + tr.width/2, tr.top + tr.height/2);
+      const toRadius = Math.min(tr.width, tr.height) / 2 * 0.8;
+      deps.forEach(pid => {
+          const fromEl = cardById.get(pid);
+          if (!fromEl) return;
+          const fr = fromEl.getBoundingClientRect();
+          const c1 = toSvg(fr.left + fr.width/2, fr.top + fr.height/2);
+          const fromRadius = Math.min(fr.width, fr.height) / 2 * 0.8;
+
+          const dx = c2.x - c1.x;
+          const dy = c2.y - c1.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist === 0) return;
+
+          const startX = c1.x + (dx / dist) * fromRadius;
+          const startY = c1.y + (dy / dist) * fromRadius;
+          const endX = c2.x - (dx / dist) * toRadius;
+          const endY = c2.y - (dy / dist) * toRadius;
+
+          const midx = (startX + endX) / 2;
+          const d = `M ${startX} ${startY} L ${midx} ${startY} L ${midx} ${endY} L ${endX} ${endY}`;
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('class', 'edge-path');
+          path.setAttribute('d', d);
+          // ORロジックの場合に点線を適用
+          if (req.or && req.or.includes(pid)) {
+              path.setAttribute('stroke-dasharray', '5,5');
+          }
+          edgesSvg.appendChild(path);
+      });
   });
 }
 
@@ -133,8 +241,6 @@ function selectNode(id){
   propDesc.value = n.description || '';
   propCost.value = n.cost != null ? n.cost : 0;
   propMaxLv.value = n.maxLevel != null ? n.maxLevel : 1;
-  propPosX.value = n.position?.x != null ? n.position.x : 0.5;
-  propPosY.value = n.position?.y != null ? n.position.y : 0.5;
   reqLogic.value = n.requires && n.requires.or ? 'or' : 'and';
   buildRequiresEditor(n);
   buildEffectsEditor(n);
@@ -232,17 +338,10 @@ function onDrag(e){
   drawEdges();
 }
 function endDrag(){
-  if (!dragState) return;
-  const id = dragState.el.dataset.nodeId;
-  const n = getNodeById(id);
-  if (n){
-    const cx = (dragState.el.offsetLeft + dragState.el.offsetWidth/2) / LAYOUT_W;
-    const cy = (dragState.el.offsetTop + dragState.el.offsetHeight/2) / LAYOUT_H;
-    n.position = { x: Math.max(0, Math.min(1, cx)), y: Math.max(0, Math.min(1, cy)) };
-  }
-  dragState.el.style.cursor = 'grab';
-  dragState = null;
-  drawEdges();
+   if (!dragState) return;
+   dragState.el.style.cursor = 'grab';
+   dragState = null;
+   drawEdges();
 }
 
 // Zoom/Pan
@@ -280,18 +379,12 @@ function saveInspector(){
   n.description = propDesc.value;
   n.cost = parseInt(propCost.value||'0', 10);
   n.maxLevel = parseInt(propMaxLv.value||'1', 10);
-  n.position = n.position || {x:0.5,y:0.5};
-  n.position.x = parseFloat(propPosX.value||'0.5');
-  n.position.y = parseFloat(propPosY.value||'0.5');
   // rebuild titles/icons text live
   const el = $(`#nodes .node-card[data-node-id="${CSS.escape(selectedNodeId)}"]`);
   if (el){
     el.querySelector('.title').textContent = n.name || n.id;
     el.querySelector('.icon').textContent = n.icon || '⚙️';
     el.querySelector('.body').textContent = n.description || '';
-    // move when position fields edited
-    el.style.left = (n.position.x * LAYOUT_W - el.offsetWidth/2) + 'px';
-    el.style.top = (n.position.y * LAYOUT_H - el.offsetHeight/2) + 'px';
   }
   drawEdges();
   updateStats();
@@ -392,7 +485,7 @@ function updateStats(){
 }
 
 // Inspector bindings
-[propId, propName, propIcon, propDesc, propCost, propMaxLv, propPosX, propPosY].forEach(inp => inp.addEventListener('input', saveInspector));
+[propId, propName, propIcon, propDesc, propCost, propMaxLv].forEach(inp => inp.addEventListener('input', saveInspector));
 reqLogic.addEventListener('change', () => {
   if (selectedNodeId) {
     const n = getNodeById(selectedNodeId);

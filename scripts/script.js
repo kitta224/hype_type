@@ -505,32 +505,16 @@ document.addEventListener('keydown', (e) => {
 
     // 判定に使う入力文字を決める
     let ch = null;
-    if (e.key === 'Backspace') {
-        ch = 'BACKSPACE';
-    } else if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
+    if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
         ch = e.key.toLowerCase();
     }
 
     // 何もしないキーなら無視
     if (!ch) return;
 
-    if (ch === 'BACKSPACE') {
-        // 各敵の進行を1文字分巻き戻す
-        enemies.forEach(enemy => {
-            if (enemy.typed && enemy.typed > 0) {
-                enemy.typed = Math.max(0, enemy.typed - 1);
-                enemy.displayWord = enemy.word.slice(enemy.typed);
-            } else {
-                enemy.typed = 0;
-                enemy.displayWord = enemy.word;
-            }
-        });
-        // typedWord（グローバル表示用）はオプションで同期しておく
-        typedWord = ''; // グローバルバッファは使わない運用にするためクリア
-        return;
-    }
-
     // 通常キー: 各敵について、現在の進行位置の次の文字と比較して進行/リセット
+    let hasCorrectInput = false;
+    let hasTypo = false;
     enemies.forEach(enemy => {
         const word = enemy.word || '';
         const expected = (word[enemy.typed] || '').toLowerCase();
@@ -539,12 +523,19 @@ document.addEventListener('keydown', (e) => {
             // 正解: 進行
             enemy.typed = (enemy.typed || 0) + 1;
             enemy.displayWord = enemy.word.slice(enemy.typed);
+            hasCorrectInput = true; // 正解があったことを記録
         } else {
             // 不一致: 即リセット
             enemy.typed = 0;
             enemy.displayWord = enemy.word;
+            hasTypo = true; // タイプミスがあったことを記録
         }
     });
+
+    // タイプミスがあり、かつ正解入力がなかった場合にのみ効果音を再生
+    if (hasTypo && !hasCorrectInput) {
+        se.play('cu3.mp3');
+    }
 
     // 進行が完了した敵を探す（単語長と typed が一致）
     const completed = enemies.filter(enemy => enemy.typed && enemy.typed >= enemy.word.length);

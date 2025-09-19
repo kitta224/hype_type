@@ -1,6 +1,8 @@
 // Upgrade UI Manager
 // Handles upgrade overlay display, node management, and UI interactions
 
+import { updatePauseMenu } from './uiManager.js';
+
 let upgradeData = null;
 let upgradePoints = 0;
 let acquiredUpgrades = new Set();
@@ -144,10 +146,17 @@ class UpgradeUI {
         for (let L = 0; L <= maxLayer; L++) {
             const group = tree.nodes.filter(n => layerCache.get(n.id) === L);
             const count = Math.max(1, group.length);
-            const marginX = 80, marginY = 60;
-            const y = marginY + (L + 0.5) * ((LAYOUT_H - marginY * 2) / (maxLayer + 1));
+            // ノード間の距離を大幅に広げる
+            const marginX = 150, marginY = 120;
+            // レイヤーごとに固定の高さ間隔を使用
+            const layerHeight = 180; // 各レイヤーの高さ間隔
+            const y = marginY + L * layerHeight;
             group.forEach((n, idx) => {
-                const x = marginX + (idx + 1) * ((LAYOUT_W - marginX * 2) / (count + 1));
+                // ノードごとに固定の幅間隔を使用
+                const nodeSpacing = 250; // ノード間の最小間隔
+                const totalWidth = (count - 1) * nodeSpacing;
+                const startX = (LAYOUT_W - totalWidth) / 2;
+                const x = startX + idx * nodeSpacing;
                 layoutPos.set(n.id, { x, y });
             });
         }
@@ -158,7 +167,7 @@ class UpgradeUI {
             const card = document.createElement('div');
             card.className = 'node-card';
             card.dataset.nodeId = n.id;
-            const pos = layoutPos.get(n.id) || { x: LAYOUT_W / 2, y: LAYOUT_H / 2 };
+            const pos = layoutPos.get(n.id);
             card.style.left = pos.x + 'px';
             card.style.top = pos.y + 'px';
 
@@ -229,8 +238,9 @@ class UpgradeUI {
                     if (overlapX > 0 && overlapY > 0) {
                         const dx = (ar.left + ar.right) / 2 - (br.left + br.right) / 2;
                         const dy = (ar.top + ar.bottom) / 2 - (br.top + br.bottom) / 2;
-                        const pushX = (dx >= 0 ? 1 : -1) * (overlapX / 2 + 2);
-                        const pushY = (dy >= 0 ? 1 : -1) * (overlapY / 2 + 2);
+                        // 押し出し距離をさらに増やしてノード間の距離を広げる
+                        const pushX = (dx >= 0 ? 1 : -1) * (overlapX / 2 + 20);
+                        const pushY = (dy >= 0 ? 1 : -1) * (overlapY / 2 + 20);
                         a.style.left = (a.offsetLeft + pushX) + 'px';
                         a.style.top = (a.offsetTop + pushY) + 'px';
                         b.style.left = (b.offsetLeft - pushX) + 'px';
@@ -253,26 +263,57 @@ class UpgradeUI {
         const toSvg = (x, y) => {
             pt.x = x; pt.y = y;
             const ctm = this.edgesSvg.getScreenCTM();
-            if (!ctm) return { x, y };
+            if (!ctm) {
+                // SVGがまだレンダリングされていない場合、相対座標を使用
+                const rect = this.edgesSvg.getBoundingClientRect();
+                return { x: x - rect.left, y: y - rect.top };
+            }
             const p = pt.matrixTransform(ctm.inverse());
             return { x: p.x, y: p.y };
         };
         this.tree.nodes.forEach(n => {
-            if (!Array.isArray(n.requires)) return;
+            const req = n.requires || {};
+            let deps = [];
+            if (Array.isArray(req)) {
+                deps = req; // 旧形式
+            } else if (req.and) {
+                deps = req.and;
+            } else if (req.or) {
+                deps = req.or;
+            }
+            if (deps.length === 0) return;
             const toEl = cardElById.get(n.id);
             if (!toEl) return;
             const tr = toEl.getBoundingClientRect();
             const c2 = toSvg(tr.left + tr.width / 2, tr.top + tr.height / 2);
-            n.requires.forEach(pid => {
+            const toRadius = Math.min(tr.width, tr.height) / 2 * 0.8; // ノード半径の80%
+            deps.forEach(pid => {
                 const fromEl = cardElById.get(pid);
                 if (!fromEl) return;
                 const fr = fromEl.getBoundingClientRect();
                 const c1 = toSvg(fr.left + fr.width / 2, fr.top + fr.height / 2);
-                const midx = (c1.x + c2.x) / 2;
-                const d = `M ${c1.x} ${c1.y} L ${midx} ${c1.y} L ${midx} ${c2.y} L ${c2.x} ${c2.y}`;
+                const fromRadius = Math.min(fr.width, fr.height) / 2 * 0.8;
+
+                // ノード境界から線を開始/終了する位置を計算
+                const dx = c2.x - c1.x;
+                const dy = c2.y - c1.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist === 0) return; // 同じ位置の場合スキップ
+
+                const startX = c1.x + (dx / dist) * fromRadius;
+                const startY = c1.y + (dy / dist) * fromRadius;
+                const endX = c2.x - (dx / dist) * toRadius;
+                const endY = c2.y - (dy / dist) * toRadius;
+
+                const midx = (startX + endX) / 2;
+                const d = `M ${startX} ${startY} L ${midx} ${startY} L ${midx} ${endY} L ${endX} ${endY}`;
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('class', 'edge-path');
                 path.setAttribute('d', d);
+                // ORロジックの場合に点線を適用
+                if (req.or && req.or.includes(pid)) {
+                    path.setAttribute('stroke-dasharray', '5,5');
+                }
                 this.edgesSvg.appendChild(path);
             });
         });
