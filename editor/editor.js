@@ -25,6 +25,7 @@ const propMaxLv = $('#propMaxLv');
 const propPosX = $('#propPosX');
 const propPosY = $('#propPosY');
 const requiresList = $('#requiresList');
+const reqLogic = $('#reqLogic');
 const effectsList = $('#effectsList');
 
 const tplNode = document.getElementById('tplNode');
@@ -58,7 +59,11 @@ function rebuildNodes(){
   t.nodes.forEach(n => {
     // init defaults
     n.position = n.position || { x: Math.random()*0.8+0.1, y: Math.random()*0.8+0.1 };
-    n.requires = n.requires || [];
+    if (Array.isArray(n.requires)) {
+        // 旧形式を新形式に変換
+        n.requires = { and: n.requires };
+    }
+    n.requires = n.requires || { and: [] };
     n.effects = n.effects || [];
 
     const el = tplNode.content.firstElementChild.cloneNode(true);
@@ -130,6 +135,7 @@ function selectNode(id){
   propMaxLv.value = n.maxLevel != null ? n.maxLevel : 1;
   propPosX.value = n.position?.x != null ? n.position.x : 0.5;
   propPosY.value = n.position?.y != null ? n.position.y : 0.5;
+  reqLogic.value = n.requires && n.requires.or ? 'or' : 'and';
   buildRequiresEditor(n);
   buildEffectsEditor(n);
   $('#btnRemoveNode').disabled = false;
@@ -140,18 +146,22 @@ function buildRequiresEditor(n){
   const t = getTree();
   // 選択中のノード以外を親候補に
   const candidates = t.nodes.filter(x => x.id !== n.id);
+  const logic = reqLogic.value; // 'and' or 'or'
+  const reqList = n.requires[logic] || [];
   candidates.forEach(c => {
     const row = document.createElement('div');
     row.className = 'req-item';
     const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.checked = (n.requires||[]).includes(c.id);
+    cb.type = 'checkbox'; cb.checked = reqList.includes(c.id);
     const label = document.createElement('label'); label.textContent = c.name || c.id;
     cb.addEventListener('change', ()=>{
-      n.requires = n.requires || [];
+      const currentLogic = reqLogic.value;
+      n.requires = n.requires || { and: [], or: [] };
+      const list = n.requires[currentLogic] || [];
       if (cb.checked) {
-        if (!n.requires.includes(c.id)) n.requires.push(c.id);
+        if (!list.includes(c.id)) list.push(c.id);
       } else {
-        n.requires = n.requires.filter(x => x !== c.id);
+        n.requires[currentLogic] = list.filter(x => x !== c.id);
       }
       drawEdges();
       saveInspector();
@@ -383,6 +393,12 @@ function updateStats(){
 
 // Inspector bindings
 [propId, propName, propIcon, propDesc, propCost, propMaxLv, propPosX, propPosY].forEach(inp => inp.addEventListener('input', saveInspector));
+reqLogic.addEventListener('change', () => {
+  if (selectedNodeId) {
+    const n = getNodeById(selectedNodeId);
+    if (n) buildRequiresEditor(n);
+  }
+});
 
 // init
 refreshTreeSelect();

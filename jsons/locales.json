@@ -12,7 +12,11 @@
       "settingsButton": "Settings",
       "startButton": "Start Game",
       "muteToggleLabel": "Mute",
-      "hp": "HP: "
+      "hp": "HP: ",
+      "pauseTitle": "Pause",
+      "resumeButton": "Resume Game",
+      "menuButton": "Back to Menu",
+      "quickStartHint": "Press Enter for quick start"
     }
   }
 }

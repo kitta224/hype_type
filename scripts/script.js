@@ -8,123 +8,15 @@ import se from './se.js'; // 効果音管理
 import BGMManager from './bgmManager.js'; // BGM管理
 import effectManager from './effectManager.js'; // エフェクト管理
 import WeaponSystem from './weaponSystem.js'; // 武器管理
+import upgradeUI, { upgradeData, upgradePoints, acquiredUpgrades } from './upgradeUI.js'; // アップグレードUI管理
+import { getCanvasColors, applyCanvasColors } from './themeManager.js'; // テーマ管理
+import { updatePauseMenu, updateUIText, uiTexts } from './uiManager.js'; // UI管理
 import './debug.js';
 
-// Upgrade overlay bootstrap
-let upgradeData = null;
-let upgradePoints = 0;
-let acquiredUpgrades = new Set();
-/**
- * テーマを初期化する関数
- * @param {boolean} isDark - ダークテーマかどうか
- */
-function setTheme(isDark) {
-    if (isDark) {
-        document.body.classList.add('dark-theme');
-    } else {
-        document.body.classList.remove('dark-theme');
-    }
-    // テーマ変更時にキャンバス内の色を再適用
-    applyCanvasColors();
-}
-
-/**
- * Canvas用のテーマ色を取得
- * @returns {Object} 各種色設定を含むオブジェクト
- */
-function getCanvasColors() {
-    const cs = getComputedStyle(document.body);
-    const accent = (cs.getPropertyValue('--accent') || '#ff9800').trim();
-    const canvasBg = (cs.getPropertyValue('--canvas-bg') || '#e0e0e0').trim();
-    const textMain = (cs.getPropertyValue('--text-main') || '#333').trim();
-    const textSub = (cs.getPropertyValue('--text-sub') || '#555').trim();
-
-    // 指定されたルールに従う色
-    const isDark = document.body.classList.contains('dark-theme');
-    return {
-        // ライト時は赤系、ダーク時は暗めのオレンジ（CSSの --accent があればそれを優先）
-        enemy: isDark ? (accent || '#cc7000') : '#a2565f',
-        // 敵の上の文字はダーク時は白、ライト時は黒
-        enemyText: isDark ? '#ffffff' : '#000000',
-        // 自機はダーク時に白、ライト時は従来のグレー
-        player: isDark ? '#ffffff' : '#666666',
-        hpText: textMain,
-        bullet: '#A9A9A9',
-        canvasBg: canvasBg
-    };
-}
-
-/**
- * Canvas内の既存オブジェクトにテーマ色を適用
- */
-function applyCanvasColors() {
-    const colors = getCanvasColors();
-    // プレイヤー
-    player.color = colors.player;
-    // 敵
-    enemies.forEach(e => e.color = colors.enemy);
-    // 弾
-    bullets.forEach(b => b.color = colors.bullet);
-}
-
-// テーマ要素の初期化はDOMが準備されてから行う
-// ユーザー設定をlocalStorageに保存するキー
-
-
-const THEME_KEY = 'hype_type_theme'; // 保存キー: 'dark' | 'light' | 'system' のいずれか
-
-function applyThemeFromPreference(pref) {
-    if (pref === 'dark') return setTheme(true);
-    if (pref === 'light') return setTheme(false);
-    // system
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return setTheme(prefersDark);
-}
-
-// DOM準備時に要素を取得し、初期状態・イベントを設定
-window.addEventListener('DOMContentLoaded', () => {
-    const themeToggle = document.getElementById('themeToggle');
-    const saved = localStorage.getItem(THEME_KEY) || 'system';
-
-    // システムの変化を監視（systemモード時のみ使用）
-    let mq = null;
-    function mqHandler(e) {
-        const currentPref = localStorage.getItem(THEME_KEY) || 'system';
-        if (currentPref === 'system') {
-            setTheme(e.matches);
-            if (themeToggle) themeToggle.checked = e.matches;
-        }
-    }
-
-    if (window.matchMedia) {
-        mq = window.matchMedia('(prefers-color-scheme: dark)');
-        mq.addEventListener ? mq.addEventListener('change', mqHandler) : mq.addListener(mqHandler);
-    }
-
-    // 初期反映
-    applyThemeFromPreference(saved);
-    if (themeToggle) {
-        // checkbox は現在の実際の表示状態に合わせておく
-        themeToggle.checked = document.body.classList.contains('dark-theme');
-
-        // ユーザー操作で明示的に切り替える場合はlocalStorageに保存
-        themeToggle.addEventListener('change', (e) => {
-            const isDark = !!e.target.checked;
-            setTheme(isDark);
-            // 明示的な指定に切り替える
-            localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
-        });
-    }
-});
-
-// ページ読み込み後に、もしユーザーが 'system' にしていてシステム設定がdarkならcheckboxの状態を合わせる
-window.addEventListener('load', () => {
-    const themeToggle = document.getElementById('themeToggle');
-    const saved = localStorage.getItem(THEME_KEY) || 'system';
-    if (themeToggle && saved === 'system' && window.matchMedia) {
-        themeToggle.checked = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-});
+// アップグレードUI初期化
+(async () => {
+    await upgradeUI.init();
+})();
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -143,25 +35,25 @@ canvas.width = currentCanvasWidth;
 canvas.height = currentCanvasHeight;
 
 // ゲーム設定
-const PLAYER_RADIUS = 15;
-const ENEMY_RADIUS = 5;
-const BULLET_RADIUS = 5;
+const BASE_CANVAS_WIDTH = 800;
+const BASE_CANVAS_HEIGHT = 600;
+const BASE_PLAYER_RADIUS = 15;
+const BASE_ENEMY_RADIUS = 5;
+const BASE_BULLET_RADIUS = 5;
 const PLAYER_MAX_HP = 100;
 const ENEMY_MAX_HP = 30; // 初期値（10倍スケール）：3 -> 30
 const BULLET_SPEED = 10;
 const ENEMY_SPAWN_INTERVAL = 2000; // 敵の出現間隔 (ms)
 const ENEMY_BASE_SPEED = 0.25; // 敵の基準移動速度（状態異常で変化）
 let inputEnabled = true; // キーボード入力の有効/無効を制御
-let gamePaused = false; // ゲームの一時停止状態
+window.gamePaused = false; // ゲームの一時停止状態
 
-// ポーズメニューの表示/非表示を更新
-function updatePauseMenu() {
-    if (gamePaused) {
-        pauseMenu.style.display = 'flex';
-    } else {
-        pauseMenu.style.display = 'none';
-    }
-}
+// 解像度に応じたスケーリング
+let canvasScale = 1;
+let PLAYER_RADIUS = BASE_PLAYER_RADIUS;
+let ENEMY_RADIUS = BASE_ENEMY_RADIUS;
+let BULLET_RADIUS = BASE_BULLET_RADIUS;
+
 
 // プレイヤー
 let player = {
@@ -219,16 +111,6 @@ async function loadAndSetWordLists() {
     updateCurrentWordList();
 }
 
-// アップグレード定義を読み込み
-async function loadUpgradeData() {
-    try {
-        const res = await fetch('jsons/upgrades.json');
-        upgradeData = await res.json();
-    } catch (e) {
-        console.error('Failed to load upgrades.json', e);
-        upgradeData = { trees: [] };
-    }
-}
 
 function updateCurrentWordList() {
     // 波の許容難易度に基づいて現在の単語プールを生成
@@ -267,7 +149,7 @@ function spawnEnemyWrapper() {
     // HP は wave システムに従って算出
     const hpForWave = wave.getEnemyHPForWave(ENEMY_MAX_HP);
     // デフォルト値を10倍にしたため、そのまま渡す
-    const enemy = spawnEnemyModule(canvas, word, hpForWave);
+    const enemy = spawnEnemyModule(canvas, word, hpForWave, ENEMY_RADIUS);
     enemy.maxHp = hpForWave;
     // テーマの色を適用
     const colors = getCanvasColors();
@@ -303,26 +185,26 @@ function draw() {
             if (enemy.status.bleed) effectManager.attachStatus(enemy, 'bleed'); else effectManager.detachStatus(enemy, 'bleed');
         }
         ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, ENEMY_RADIUS * 0.7, 0, Math.PI * 2); // サイズ縮小
+        ctx.arc(enemy.x, enemy.y, enemy.radius * 0.7, 0, Math.PI * 2); // サイズ縮小
         ctx.fillStyle = enemy.color || colors.enemy; // 敵はアクセント色
         ctx.fill();
         // 単語表示（白）
         ctx.fillStyle = colors.enemyText;
-        ctx.font = '16px Arial';
+        ctx.font = `${16 * canvasScale}px Arial`;
         ctx.textAlign = 'center';
         ctx.globalAlpha = 0.9;
-        ctx.fillText(enemy.displayWord || enemy.word, enemy.x, enemy.y - ENEMY_RADIUS - 5);
+        ctx.fillText(enemy.displayWord || enemy.word, enemy.x, enemy.y - enemy.radius - 5 * canvasScale);
         ctx.globalAlpha = 1.0;
         // HPバー描画（敵の下に小さく表示）
         if (typeof enemy.hp === 'number' && typeof enemy.maxHp === 'number') {
             const hpRatio = Math.max(0, enemy.hp) / Math.max(1, enemy.maxHp);
             // 満タン時は非表示
             if (hpRatio < 1) {
-                const barFullWidth = 36; // 基準幅
-                const barHeight = 2; // さらに細く
+                const barFullWidth = 36 * canvasScale; // 基準幅
+                const barHeight = 2 * canvasScale; // さらに細く
                 const displayWidth = barFullWidth * hpRatio;
                 const x = enemy.x - displayWidth / 2;
-                const y = enemy.y + ENEMY_RADIUS + 6; // 敵の下に移動
+                const y = enemy.y + enemy.radius + 6 * canvasScale; // 敵の下に移動
                 ctx.globalAlpha = 0.95;
                 ctx.fillStyle = colors.enemyText;
                 // 角丸長方形を描く
@@ -351,9 +233,9 @@ function draw() {
     const kills = (wave && typeof wave.getKillsThisWave === 'function') ? wave.getKillsThisWave() : 0;
     const need = (wave && typeof wave.getKillsToAdvance === 'function') ? wave.getKillsToAdvance() : 10;
     ctx.fillStyle = colors.hpText;
-    ctx.font = '18px Montserrat';
+    ctx.font = `${18 * canvasScale}px Montserrat`;
     ctx.textAlign = 'center';
-    ctx.fillText(`Wave: ${waveNum}  Kills: ${kills}/${need}`, canvas.width / 2, 28);
+    ctx.fillText(`Wave: ${waveNum}  Kills: ${kills}/${need}`, canvas.width / 2, 28 * canvasScale);
 
     // 弾描画
     bullets.forEach(bullet => {
@@ -365,9 +247,9 @@ function draw() {
 
     // HP表示
     ctx.fillStyle = colors.hpText; /* HP表示の色 */
-    ctx.font = '16px Montserrat';
+    ctx.font = `${16 * canvasScale}px Montserrat`;
     ctx.textAlign = 'center';
-    ctx.fillText(uiTexts[currentUiLanguage].hp + player.hp, player.x, player.y + PLAYER_RADIUS + 20);
+    ctx.fillText(uiTexts[currentUiLanguage].hp + player.hp, player.x, player.y + PLAYER_RADIUS + 20 * canvasScale);
 
     // BGM情報表示（右下）
     bgmManager.drawBGMInfo(ctx, canvas);
@@ -407,7 +289,7 @@ function update(dtSec) {
 
         enemy.moveTowards(player.x, player.y, speed);
         
-        if (enemy.checkPlayerCollision(player.x, player.y, PLAYER_RADIUS, ENEMY_RADIUS)) {
+        if (enemy.checkPlayerCollision(player.x, player.y, PLAYER_RADIUS, enemy.radius)) {
             player.hp -= 10; // ダメージ
             effectManager.clearEnemy(enemy);
             if (player.hp <= 0) {
@@ -440,12 +322,12 @@ function update(dtSec) {
         bullet.move();
 
         enemies.forEach(enemy => {
-            if (bullet.checkEnemyCollision(enemy.x, enemy.y, BULLET_RADIUS, ENEMY_RADIUS)) {
+            if (bullet.checkEnemyCollision(enemy.x, enemy.y, BULLET_RADIUS, enemy.radius)) {
                 const dmg = (typeof bullet.damage === 'number') ? bullet.damage : 1;
                 enemy.hp -= dmg;
 
                 // ダメージ表示エフェクトを生成
-                effectManager.createDamageEffect(enemy.x, enemy.y - 20, dmg, '#ff4444');
+                effectManager.createDamageEffect(enemy.x, enemy.y - 20 * canvasScale, dmg, '#ff4444', canvasScale);
 
                 // デバッグ出力
                 if (window.hypeType && window.hypeType.debug && window.hypeType.logDamage) {
@@ -497,7 +379,13 @@ function initializeGame() {
     }
     canvas.width = currentCanvasWidth;
     canvas.height = currentCanvasHeight;
-    
+
+    // 解像度に応じたスケーリング計算
+    canvasScale = Math.min(canvas.width / BASE_CANVAS_WIDTH, canvas.height / BASE_CANVAS_HEIGHT);
+    PLAYER_RADIUS = BASE_PLAYER_RADIUS * canvasScale;
+    ENEMY_RADIUS = BASE_ENEMY_RADIUS * canvasScale;
+    BULLET_RADIUS = BASE_BULLET_RADIUS * canvasScale;
+
     updateCurrentWordList();
     // キャンバスの色を反映
     applyCanvasColors();
@@ -523,7 +411,7 @@ let lastFrameTime = 0;
  */
 function killEnemy(enemy) {
     const colors = getCanvasColors();
-    effectManager.createEnemyDefeatEffect(enemy.x, enemy.y, colors.enemy);
+    effectManager.createEnemyDefeatEffect(enemy.x, enemy.y, colors.enemy, undefined, undefined, canvasScale);
     effectManager.clearEnemy(enemy);
     se.play('cu1.mp3');
     usedWords = usedWords.filter(w => w !== enemy.word);
@@ -535,270 +423,6 @@ function killEnemy(enemy) {
     }
 }
 
-// Upgrade overlay functions
-function openUpgradeOverlay() {
-    const overlay = document.getElementById('upgradeOverlay');
-    if (!overlay) return;
-    overlay.style.display = 'block';
-    gamePaused = true;
-    updatePauseMenu();
-    updateUpgradeSidePanel();
-    if (window.__needUpgradeLayout) { window.__needUpgradeLayout = false; buildUpgradeUI(); }
-}
-function toggleProtocols() {
-    const side = document.getElementById('protocolSidebar');
-    if (!side) return;
-    side.style.display = (side.style.display === 'none' || !side.style.display) ? 'block' : 'none';
-}
-function closeUpgradeOverlay() {
-    const overlay = document.getElementById('upgradeOverlay');
-    if (!overlay) return;
-    overlay.style.display = 'none';
-    gamePaused = false;
-    updatePauseMenu();
-}
-function updateUpgradeSidePanel() {
-    const el = document.getElementById('upgradePoints');
-    if (el) el.textContent = String(upgradePoints);
-}
-function buildUpgradeUI() {
-    const nodesRoot = document.getElementById('upgradeNodes');
-    const edgesSvg = document.getElementById('upgradeEdges');
-    if (!nodesRoot || !edgesSvg || !upgradeData || !upgradeData.trees || !upgradeData.trees.length) return;
-    nodesRoot.innerHTML = '';
-    edgesSvg.innerHTML = '';
-    const tree = upgradeData.trees[0];
-
-    // fixed logical layout size to avoid display:none issues
-    const LAYOUT_W = 1000, LAYOUT_H = 600;
-    nodesRoot.style.width = LAYOUT_W + 'px';
-    nodesRoot.style.height = LAYOUT_H + 'px';
-
-    // Zoom/Pan support
-    const wrap = document.getElementById('upgradeCanvasWrap');
-    let scale = 1, ox = 0, oy = 0, dragging=false, sx=0, sy=0;
-    function applyTransform(){
-        nodesRoot.style.transform = `translate(${ox}px, ${oy}px) scale(${scale})`;
-        // Redraw edges in SVG coords (independent of CSS transforms)
-        drawEdges();
-    }
-    if (wrap) {
-        wrap.onwheel = (ev)=>{ ev.preventDefault(); const ds = Math.exp(-ev.deltaY*0.001); scale = Math.max(0.6, Math.min(2.0, scale*ds)); applyTransform(); };
-        wrap.onmousedown = (ev)=>{ dragging=true; sx=ev.clientX; sy=ev.clientY; };
-        window.onmouseup = ()=>{ dragging=false; };
-        window.onmousemove = (ev)=>{ if(!dragging) return; ox += ev.clientX - sx; oy += ev.clientY - sy; sx=ev.clientX; sy=ev.clientY; applyTransform(); };
-    }
-
-    // Map for ids (edges drawn after layout) + compute layers and layout positions
-    const byId = new Map();
-    tree.nodes.forEach(n => byId.set(n.id, n));
-    const layerCache = new Map();
-    function getLayer(n){
-        if (!n) return 0;
-        if (layerCache.has(n.id)) return layerCache.get(n.id);
-        const req = n.requires || [];
-        let L = 0;
-        if (req.length>0) {
-            L = Math.max(0, ...req.map(pid => getLayer(byId.get(pid)))) + 1;
-        }
-        layerCache.set(n.id, L);
-        return L;
-    }
-    tree.nodes.forEach(n => getLayer(n));
-    const maxLayer = Math.max(0, ...Array.from(layerCache.values()));
-    const layoutPos = new Map();
-    for (let L=0; L<=maxLayer; L++){
-        const group = tree.nodes.filter(n => layerCache.get(n.id) === L);
-        const count = Math.max(1, group.length);
-        const marginX = 80, marginY = 60;
-        const y = marginY + (L+0.5) * ((LAYOUT_H - marginY*2) / (maxLayer+1));
-        group.forEach((n, idx) => {
-            const x = marginX + (idx+1) * ((LAYOUT_W - marginX*2) / (count+1));
-            layoutPos.set(n.id, { x, y });
-        });
-    }
-
-    // Create nodes
-    const cards = [];
-    tree.nodes.forEach(n => {
-        const card = document.createElement('div');
-        card.className = 'node-card';
-        card.dataset.nodeId = n.id;
-        const pos = layoutPos.get(n.id) || { x: LAYOUT_W/2, y: LAYOUT_H/2 };
-        card.style.left = pos.x + 'px';
-        card.style.top = pos.y + 'px';
-
-        const head = document.createElement('div');
-        head.className = 'head';
-        const title = document.createElement('div');
-        title.className = 'title';
-        title.textContent = n.name;
-        const icon = document.createElement('div');
-        icon.className = 'icon';
-        icon.textContent = n.icon || '';
-        head.appendChild(title);
-        head.appendChild(icon);
-
-        const body = document.createElement('div');
-        body.className = 'body';
-        body.textContent = n.description || '';
-
-        const foot = document.createElement('div');
-        foot.className = 'footer';
-        const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.textContent = acquiredUpgrades.has(n.id) ? 'OWNED' : (canPurchaseNode(n) ? 'SELECT' : 'LOCKED');
-        btn.disabled = !canPurchaseNode(n) || acquiredUpgrades.has(n.id);
-        btn.addEventListener('click', () => {
-            if (!canPurchaseNode(n)) return;
-            acquireNode(n);
-            buildUpgradeUI();
-            updateUpgradeSidePanel();
-        });
-        foot.appendChild(btn);
-
-        card.appendChild(head);
-        card.appendChild(body);
-        card.appendChild(foot);
-
-        if (!canPurchaseNode(n)) card.classList.add('locked');
-        if (acquiredUpgrades.has(n.id)) card.classList.add('acquired');
-
-        nodesRoot.appendChild(card);
-        // center anchor to card center
-        const cw = card.offsetWidth || 240, ch = card.offsetHeight || 120;
-        card.style.left = (parseFloat(card.style.left) - cw / 2) + 'px';
-        card.style.top = (parseFloat(card.style.top) - ch / 2) + 'px';
-        cards.push(card);
-    });
-
-    function runLayout() {
-        // skip if container not yet visible
-        if (nodesRoot.offsetWidth === 0 || nodesRoot.offsetHeight === 0) return;
-        for (let iter=0; iter<50; iter++) {
-            let moved = false;
-            for (let i=0;i<cards.length;i++){
-                for (let j=i+1;j<cards.length;j++){
-                    const a=cards[i], b=cards[j];
-                    const ar={left:a.offsetLeft, top:a.offsetTop, right:a.offsetLeft+a.offsetWidth, bottom:a.offsetTop+a.offsetHeight};
-                    const br={left:b.offsetLeft, top:b.offsetTop, right:b.offsetLeft+b.offsetWidth, bottom:b.offsetTop+b.offsetHeight};
-                    const overlapX = Math.max(0, Math.min(ar.right, br.right) - Math.max(ar.left, br.left));
-                    const overlapY = Math.max(0, Math.min(ar.bottom, br.bottom) - Math.max(ar.top, br.top));
-                    if (overlapX>0 && overlapY>0){
-                        const dx = (ar.left+ar.right)/2 - (br.left+br.right)/2;
-                        const dy = (ar.top+ar.bottom)/2 - (br.top+br.bottom)/2;
-                        const pushX = (dx>=0?1:-1) * (overlapX/2 + 2);
-                        const pushY = (dy>=0?1:-1) * (overlapY/2 + 2);
-                        a.style.left = (a.offsetLeft + pushX) + 'px';
-                        a.style.top  = (a.offsetTop  + pushY) + 'px';
-                        b.style.left = (b.offsetLeft - pushX) + 'px';
-                        b.style.top  = (b.offsetTop  - pushY) + 'px';
-                        moved = true;
-                    }
-                }
-            }
-            if (!moved) break;
-        }
-        drawEdges();
-    }
-
-    // Draw orthogonal edges (subway style) based on final card positions
-    function drawEdges() {
-        edgesSvg.innerHTML = '';
-        const cardElById = new Map();
-        cards.forEach(el => cardElById.set(el.dataset.nodeId, el));
-        const pt = edgesSvg.createSVGPoint();
-        function toSvg(x, y){
-            pt.x = x; pt.y = y;
-            const ctm = edgesSvg.getScreenCTM();
-            if (!ctm) return { x, y };
-            const p = pt.matrixTransform(ctm.inverse());
-            return { x: p.x, y: p.y };
-        }
-        tree.nodes.forEach(n => {
-            if (!Array.isArray(n.requires)) return;
-            const toEl = cardElById.get(n.id);
-            if (!toEl) return;
-            const tr = toEl.getBoundingClientRect();
-            const c2 = toSvg(tr.left + tr.width/2, tr.top + tr.height/2);
-            n.requires.forEach(pid => {
-                const fromEl = cardElById.get(pid);
-                if (!fromEl) return;
-                const fr = fromEl.getBoundingClientRect();
-                const c1 = toSvg(fr.left + fr.width/2, fr.top + fr.height/2);
-                const midx = (c1.x + c2.x) / 2;
-                const d = `M ${c1.x} ${c1.y} L ${midx} ${c1.y} L ${midx} ${c2.y} L ${c2.x} ${c2.y}`;
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('class', 'edge-path');
-                path.setAttribute('d', d);
-                edgesSvg.appendChild(path);
-            });
-        });
-    }
-
-    // Render edges now (no repulsion; tree layout avoids overlap)
-    drawEdges();
-
-    // Side panel basics
-    const closeBtn = document.getElementById('closeUpgrade');
-    if (closeBtn) closeBtn.onclick = closeUpgradeOverlay;
-}
-
-function canPurchaseNode(node) {
-    if (acquiredUpgrades.has(node.id)) return false;
-    if ((node.cost || 0) > upgradePoints) return false;
-    const req = node.requires || [];
-    return req.every(id => acquiredUpgrades.has(id));
-}
-
-function acquireNode(node) {
-    upgradePoints -= (node.cost || 0);
-    acquiredUpgrades.add(node.id);
-    applyNodeEffects(node);
-    // append to protocols list
-    const list = document.getElementById('protocolList');
-    if (list) { const li=document.createElement('li'); li.textContent=node.name; list.appendChild(li); }
-}
-
-function applyNodeEffects(node) {
-    if (!node.effects) return;
-    node.effects.forEach(e => {
-        if (e.kind === 'stat' && e.target && (e.op === 'add' || e.op === 'mul')) {
-            // weapon.* stats
-            if (e.target.startsWith('weapon.')) {
-                const key = e.target.slice('weapon.'.length);
-                if (e.op === 'add') {
-                    window.hypeType.weapon.setBase(key, (window.hypeType.weapon.base[key] || 0) + e.value);
-                } else if (e.op === 'mul') {
-                    window.hypeType.weapon.setMul(key, (window.hypeType.weapon.mul[key] || 1) * e.value);
-                }
-            }
-        } else if (e.kind === 'special') {
-            if ((e.type === 'status_tuning' || e.type === 'status_base_add') && e.path) {
-                const [stype, skey] = e.path.split('.');
-                if (e.type === 'status_tuning') {
-                    // multiply or add tuning value
-                    if (e.op === 'mul') {
-                        Enemy.statusTuning[stype][skey] = (Enemy.statusTuning[stype][skey] || 1) * e.value;
-                    } else if (e.op === 'add') {
-                        Enemy.statusTuning[stype][skey] = (Enemy.statusTuning[stype][skey] || 0) + e.value;
-                    }
-                } else if (e.type === 'status_base_add') {
-                    // change absolute base
-                    if (e.op === 'mul') {
-                        Enemy.statusBase[stype][skey] = (Enemy.statusBase[stype][skey] || 0) * e.value;
-                    } else if (e.op === 'add') {
-                        Enemy.statusBase[stype][skey] = (Enemy.statusBase[stype][skey] || 0) + e.value;
-                    }
-                }
-            }
-        }
-    });
-}
-
-// add points on kill
-const __origOnEnemyDefeated = (typeof wave.onEnemyDefeated === 'function') ? wave.onEnemyDefeated.bind(wave) : null;
-wave.onEnemyDefeated = function(){ if(__origOnEnemyDefeated) __origOnEnemyDefeated(); upgradePoints += 1; updateUpgradeSidePanel(); };
 
 function gameLoop(currentTime) {
     if (!lastFrameTime) lastFrameTime = currentTime;
@@ -806,7 +430,7 @@ function gameLoop(currentTime) {
     const dtSec = deltaTime / 1000;
 
     if (deltaTime >= frameInterval) {
-        if (!gamePaused) {
+        if (!window.gamePaused) {
             update(dtSec);
             draw();
         } else {
@@ -849,28 +473,32 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         const overlay = document.getElementById('upgradeOverlay');
         if (!overlay) return;
-        if (overlay.style.display === 'block') { closeUpgradeOverlay(); }
-        else { openUpgradeOverlay(); }
+        if (overlay.style.display === 'block') { upgradeUI.closeUpgradeOverlay(); }
+        else { upgradeUI.openUpgradeOverlay(); }
         return;
     }
 
     // Tab: toggle protocols sidebar
     if (e.code === 'Tab') {
         e.preventDefault();
-        toggleProtocols();
+        upgradeUI.toggleProtocols();
         return;
     }
     
     // ESCキー: 強化画面中は再開しない。オーバーレイを閉じるのみ。
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && !e.repeat) {
         const overlay = document.getElementById('upgradeOverlay');
         if (overlay && overlay.style.display === 'block') {
-            overlay.style.display = 'none';
-            // ゲームの一時停止状態は維持（再開しない）
-            updatePauseMenu();
+            upgradeUI.closeUpgradeOverlay();
         } else {
-            gamePaused = !gamePaused;
+            window.gamePaused = !window.gamePaused;
             updatePauseMenu();
+            if (window.gamePaused) {
+                bgmManager.pause();
+                se.play('info.mp3');
+            } else {
+                bgmManager.resume();
+            }
         }
         return;
     }
@@ -952,30 +580,6 @@ document.addEventListener('keydown', (e) => {
     typedWord = '';
 });
 
-// イベントリスナー
-// UIテキストを現在の言語で更新する関数
-function updateUIText() {
-    const texts = uiTexts[currentLanguage];
-    document.querySelector('h1').textContent = texts.title;
-    document.querySelector('h3') && (document.querySelector('h3').textContent = texts.subtitle);
-    document.getElementById('languageLabel').textContent = texts.languageLabel;
-    // 言語選択肢（英語のみ）
-    if (languageSelect && languageSelect.options && languageSelect.options[0]) {
-        languageSelect.options[0].text = texts.languageEnglish;
-    }
-    // 解像度選択肢
-    document.getElementById('resolutionLabel').textContent = texts.resolutionLabel;
-    document.getElementById('resolutionSelect').options[0].text = texts.Default;
-    document.getElementById('resolutionSelect').options[1].text = texts['100p'];
-    // テーマ切替
-    document.getElementById('themeToggleLabel').textContent = texts.themeToggleLabel;
-    // 設定ボタン
-    document.getElementById('settingsButton').textContent = texts.settingsButton;
-    //
-    document.getElementById('muteToggleLabel').textContent = texts.muteToggleLabel;
-    // スタートボタン
-    document.getElementById('startButton').textContent = texts.startButton;
-}
 
 // 言語切替時にUI更新
 
@@ -989,10 +593,51 @@ window.addEventListener('DOMContentLoaded', () => {
     // セレクトボックス初期値反映
     languageSelect.value = currentLanguage;
     updateUIText();
+
+    // メニューのホバー状態保存
+    const menuItems = document.querySelectorAll('.menu-item');
+    menuItems.forEach(item => {
+        const label = item.querySelector('.menu-label');
+        const submenu = item.querySelector('.submenu');
+
+        if (label && submenu) {
+            // ホバーで開く（他のタブを閉じる）
+            item.addEventListener('mouseenter', () => {
+                // 他のタブのopenクラスを削除
+                menuItems.forEach(otherItem => {
+                    if (otherItem !== item) {
+                        otherItem.classList.remove('open');
+                    }
+                });
+                item.classList.add('open');
+            });
+
+            // クリックでトグル
+            label.addEventListener('click', (e) => {
+                e.preventDefault();
+                // 他のタブのopenクラスを削除してからトグル
+                menuItems.forEach(otherItem => {
+                    if (otherItem !== item) {
+                        otherItem.classList.remove('open');
+                    }
+                });
+                item.classList.toggle('open');
+            });
+        }
+    });
 });
 
 // ゲーム開始
-startButton.addEventListener('click', () => {
+startButton.addEventListener('click', startGame);
+
+// エンターキーでクイックスタート
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && startScreen.style.display !== 'none') {
+        startGame();
+    }
+});
+
+function startGame() {
     if (initializeGame()) {
         startScreen.style.display = 'none';
         canvas.style.display = 'block';
@@ -1018,50 +663,17 @@ startButton.addEventListener('click', () => {
         // BGM再生開始
         bgmManager.start();
 
-        // アップグレードデータのロードとUI構築（自動オープンはしない）
-        if (!upgradeData) {
-            loadUpgradeData().then(() => buildUpgradeUI());
-        } else {
-            buildUpgradeUI();
-        }
+        // アップグレードUI構築（自動オープンはしない）
+        upgradeUI.buildUpgradeUI();
+
+        // ウェーブ統合設定
+        upgradeUI.setupWaveIntegration(wave);
     }
-});
+}
 
 // 初期化
 loadAndSetWordLists();
 
-// 言語リソース定義
-const uiTexts = {
-    english: {
-    }
-};
-
-// locales.jsonからUIテキストを読み込む
-fetch('jsons/locales.json')
-    .then(response => response.json())
-    .then(data => {
-        Object.assign(uiTexts.english, data.uiTexts.english);
-        updateUIText();
-    })
-    .catch(error => console.error('Error loading locales:', error));
-
-// ポーズメニューボタンのイベントリスナー
-resumeButton.addEventListener('click', () => {
-    gamePaused = false;
-    updatePauseMenu();
-});
-
-menuButton.addEventListener('click', () => {
-    gamePaused = false;
-    updatePauseMenu();
-    // ゲームを停止してスタート画面に戻る
-    window._gameLoopRunning = false;
-    canvas.style.display = 'none';
-    startScreen.style.display = 'block';
-    
-    // BGMを停止
-    bgmManager.stop();
-});
 
 // ===== Debug Utilities: apply status effects from console =====
 window.hypeType = window.hypeType || {};

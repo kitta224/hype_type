@@ -1,6 +1,6 @@
 // Enemyクラスと敵管理用関数
 export class Enemy {
-    constructor(x, y, word, hp, color = '#808080') {
+    constructor(x, y, word, hp, color = '#808080', radius = 5) {
         this.x = x;
         this.y = y;
         this.word = word;
@@ -8,6 +8,7 @@ export class Enemy {
         this.typed = '';
         this.hp = hp;
         this.color = color;
+        this.radius = radius;
         // 最大体力（動的に変わる）と基準最大体力（固定）
         this.maxHp = hp;
         this.baseMaxHp = hp;
@@ -245,15 +246,14 @@ Enemy.statusTuning = {
     bleed: { durationMul: 1, percentPerSecMul: 1, minRatioMul: 1 }
 };
 
-export function spawnEnemy(canvas, word, hp) {
-    const ENEMY_RADIUS = 5;
+export function spawnEnemy(canvas, word, hp, enemyRadius = 5) {
     const side = Math.floor(Math.random() * 4); // 0:上, 1:右, 2:下, 3:左
     let x, y;
     switch (side) {
-        case 0: x = Math.random() * canvas.width; y = -ENEMY_RADIUS; break;
-        case 1: x = canvas.width + ENEMY_RADIUS; y = Math.random() * canvas.height; break;
-        case 2: x = Math.random() * canvas.width; y = canvas.height + ENEMY_RADIUS; break;
-        case 3: x = -ENEMY_RADIUS; y = Math.random() * canvas.height; break;
+        case 0: x = Math.random() * canvas.width; y = -enemyRadius; break;
+        case 1: x = canvas.width + enemyRadius; y = Math.random() * canvas.height; break;
+        case 2: x = Math.random() * canvas.width; y = canvas.height + enemyRadius; break;
+        case 3: x = -enemyRadius; y = Math.random() * canvas.height; break;
     }
-    return new Enemy(x, y, word, hp);
+    return new Enemy(x, y, word, hp, '#808080', enemyRadius);
 }

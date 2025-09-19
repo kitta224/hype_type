@@ -160,6 +160,20 @@ class BGMManager {
             this.isPlaying = false;
         }
     }
+
+    // ポーズ時にBGM一時停止
+    pause() {
+        if (this.audio && this.isPlaying) {
+            this.audio.pause();
+        }
+    }
+
+    // ポーズ解除時にBGM再開
+    resume() {
+        if (this.audio && this.isPlaying) {
+            this.audio.play().catch(e => console.error('BGM再開エラー:', e));
+        }
+    }
 }
 
 export default BGMManager;

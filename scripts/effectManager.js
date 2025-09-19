@@ -14,10 +14,11 @@ class EffectManager {
      * @param {string} color - エフェクトの色
      * @param {string} [fragmentType] - 破片タイプ指定（オプション）
      * @param {string} [enemyShape] - 敵の形状に基づくパーティクル生成（オプション）
+     * @param {number} [scale] - スケールファクター（オプション）
      */
-    createEnemyDefeatEffect(x, y, color, fragmentType, enemyShape) {
+    createEnemyDefeatEffect(x, y, color, fragmentType, enemyShape, scale = 1) {
         // 破片エフェクト生成
-        this.createFragments(x, y, color, fragmentType, enemyShape);
+        this.createFragments(x, y, color, fragmentType, enemyShape, scale);
     }
 
     /**
@@ -27,10 +28,11 @@ class EffectManager {
      * @param {string} color - 破片の色
      * @param {string} [fragmentType] - 破片タイプ指定（オプション）
      * @param {string} [enemyShape] - 敵の形状に基づくパーティクル生成（オプション）
+     * @param {number} [scale] - スケールファクター（オプション）
      */
-    createFragments(x, y, color, fragmentType, enemyShape) {
+    createFragments(x, y, color, fragmentType, enemyShape, scale = 1) {
         const fragmentCount = 12; // 破片数を増加
-        
+
         // 敵の形状に基づいて破片タイプを決定
         let effectiveFragmentType = fragmentType;
         if (!effectiveFragmentType && enemyShape) {
@@ -48,14 +50,14 @@ class EffectManager {
                     effectiveFragmentType = null;
             }
         }
-        
+
         // 利用可能な破片タイプ
         const fragmentTypes = ['square', 'triangle', 'circle', 'diamond', 'star'];
-        
+
         for (let i = 0; i < fragmentCount; i++) {
             const angle = Math.random() * Math.PI * 2; // ランダムな角度
-            const speed = 1 + Math.random() * 2; // 速度を増加
-            const size = 2 + Math.random() * 3; // サイズを増加
+            const speed = (1 + Math.random() * 2) * scale; // 速度を増加
+            const size = (2 + Math.random() * 3) * scale; // サイズを増加
             const lifetime = 40 + Math.random() * 20; // 生存時間を増加
             const rotationSpeed = (Math.random() - 0.5) * 0.2; // 回転速度
             
@@ -89,14 +91,15 @@ class EffectManager {
      * @param {number} y - 発生Y座標
      * @param {number} damage - 表示するダメージ値
      * @param {string} [color] - テキストの色（オプション）
+     * @param {number} [scale] - スケールファクター（オプション）
      */
-    createDamageEffect(x, y, damage, color = '#ff4444') {
+    createDamageEffect(x, y, damage, color = '#ff4444', scale = 1) {
         this.particles.push({
             x: x,
             y: y,
-            vx: (Math.random() - 0.5) * 0.5, // わずかな横方向の動き
-            vy: -2.5, // 上方向に移動
-            size: 16, // フォントサイズ
+            vx: (Math.random() - 0.5) * 0.5 * scale, // わずかな横方向の動き
+            vy: -2.5 * scale, // 上方向に移動
+            size: 16 * scale, // フォントサイズ
             color: color,
             lifetime: 45, // 表示時間
             type: 'damage', // ダメージ表示タイプ

@@ -10,7 +10,7 @@
           "description": "Reduce fire cooldown by 10%",
           "icon": "⚙️",
           "position": { "x": 0.55, "y": 0.12 },
-          "requires": [],
+          "requires": { "and": [] },
           "cost": 1,
           "maxLevel": 1,
           "effects": [
@@ -23,7 +23,7 @@
           "description": "Increase burst by +1",
           "icon": "🧪",
           "position": { "x": 0.38, "y": 0.28 },
-          "requires": ["speed_opt_1"],
+          "requires": { "and": ["speed_opt_1"] },
           "cost": 1,
           "maxLevel": 1,
           "effects": [
@@ -36,7 +36,7 @@
           "description": "Chill grows faster (status dps growth +30%)",
           "icon": "❄️",
           "position": { "x": 0.52, "y": 0.42 },
-          "requires": ["burst_1"],
+          "requires": { "and": ["burst_1"] },
           "cost": 1,
           "maxLevel": 1,
           "effects": [
@@ -49,7 +49,7 @@
           "description": "Freeze lasts +30%",
           "icon": "🧊",
           "position": { "x": 0.77, "y": 0.36 },
-          "requires": ["chill_bias"],
+          "requires": { "and": ["chill_bias"] },
           "cost": 1,
           "maxLevel": 1,
           "effects": [
@@ -62,7 +62,7 @@
           "description": "Reduce spread by 30%",
           "icon": "📐",
           "position": { "x": 0.22, "y": 0.52 },
-          "requires": ["burst_1"],
+          "requires": { "and": ["burst_1"] },
           "cost": 1,
           "maxLevel": 1,
           "effects": [
@@ -75,7 +75,7 @@
           "description": "Bleed percent per sec +0.02",
           "icon": "🩸",
           "position": { "x": 0.52, "y": 0.7 },
-          "requires": ["chill_bias"],
+          "requires": { "and": ["chill_bias"] },
           "cost": 1,
           "maxLevel": 1,
           "effects": [
@@ -88,7 +88,7 @@
           "description": "Improve reload sequence",
           "icon": "🧰",
           "position": { "x": 0.18, "y": 0.28 },
-          "requires": [],
+          "requires": { "and": [] },
           "cost": 1,
           "maxLevel": 1,
           "effects": [
@@ -101,7 +101,7 @@
           "description": "+1 Pierce",
           "icon": "⚡",
           "position": { "x": 0.76, "y": 0.74 },
-          "requires": ["freeze_path", "bleed_path"],
+          "requires": { "and": ["freeze_path", "bleed_path"] },
           "cost": 1,
           "maxLevel": 1,
           "effects": [
