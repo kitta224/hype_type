@@ -91,7 +91,6 @@ class UpgradeUI {
         if (!this.overlay) return;
         this.overlay.style.display = 'none';
         window.gamePaused = false;
-        updatePauseMenu();
         // BGM再開
         if (typeof bgmManager !== 'undefined' && bgmManager.resume) {
             bgmManager.resume();
