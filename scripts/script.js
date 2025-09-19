@@ -239,10 +239,13 @@ function draw() {
 
     // 弾描画
     bullets.forEach(bullet => {
-        ctx.beginPath();
-        ctx.arc(bullet.x, bullet.y, BULLET_RADIUS, 0, Math.PI * 2);
         ctx.fillStyle = bullet.color || colors.bullet;
-        ctx.fill();
+        ctx.fillRect(
+            bullet.x - BULLET_RADIUS / 2,
+            bullet.y - BULLET_RADIUS / 2,
+            BULLET_RADIUS,
+            BULLET_RADIUS
+        );
     });
 
     // HP表示
@@ -325,6 +328,17 @@ function update(dtSec) {
 
     // 弾の移動と衝突判定
     bullets.forEach(bullet => {
+        // 弾の軌跡エフェクトを生成（移動するたびに）
+        const colors = getCanvasColors();
+        effectManager.createBulletTrailEffect(
+            bullet.x,
+            bullet.y,
+            bullet.vx,
+            bullet.vy,
+            colors.bullet,
+            canvasScale
+        );
+
         bullet.move();
 
         enemies.forEach(enemy => {

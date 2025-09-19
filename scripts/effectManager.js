@@ -86,6 +86,109 @@ class EffectManager {
     }
 
     /**
+     * 爆発エフェクトを生成（中心から円の輪郭が広がっていく）
+     * @param {number} x - 発生X座標
+     * @param {number} y - 発生Y座標
+     * @param {string} [color] - エフェクトの色（オプション）
+     * @param {number} [scale] - スケールファクター（オプション）
+     */
+    createExplosionEffect(x, y, color = '#ff4444', scale = 1) {
+        const ringCount = 5; // リングの数
+        const maxRadius = 40 * scale; // 最大半径
+
+        for (let i = 0; i < ringCount; i++) {
+            const delay = i * 3; // 各リングの遅延時間
+            const radius = (maxRadius / ringCount) * (i + 1);
+
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: 0, // 静止
+                vy: 0,
+                size: radius * 2, // 直径
+                color: color,
+                lifetime: 30 + delay, // 遅延込みの生存時間
+                type: 'explosion', // 爆発タイプ
+                alpha: 1.0,
+                rotation: 0,
+                rotationSpeed: 0,
+                explosionDelay: delay, // 爆発開始までの遅延
+                explosionRadius: radius, // 最終半径
+                currentRadius: 0 // 現在の半径
+            });
+        }
+    }
+
+    /**
+     * スプラッシュエフェクトを生成（指定の方向に指定の図形を飛び散らせる）
+     * @param {number} x - 発生X座標
+     * @param {number} y - 発生Y座標
+     * @param {number} direction - 飛び散る方向（ラジアン）
+     * @param {string} [shape] - 飛び散る図形の種類（オプション、デフォルト: 'circle'）
+     * @param {string} [color] - エフェクトの色（オプション）
+     * @param {number} [scale] - スケールファクター（オプション）
+     */
+    createSplashEffect(x, y, direction, shape = 'circle', color = '#ffffff', scale = 1) {
+        const splashCount = 8; // 飛び散るパーティクルの数
+        const splashSpeed = 3 + Math.random() * 2; // 飛び散る速度
+        const spreadAngle = Math.PI / 3; // 広がりの角度（60度）
+
+        for (let i = 0; i < splashCount; i++) {
+            // 指定方向からのランダムな角度範囲で飛び散らせる
+            const angle = direction - spreadAngle / 2 + (Math.random() * spreadAngle);
+            const speed = splashSpeed * (0.5 + Math.random() * 0.5); // 速度のばらつき
+
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: (2 + Math.random() * 3) * scale, // サイズのばらつき
+                color: color,
+                lifetime: 25 + Math.random() * 15, // 生存時間
+                type: 'splash', // スプラッシュタイプ
+                alpha: 1.0,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.2,
+                splashShape: shape // 飛び散る図形の種類
+            });
+        }
+    }
+
+    /**
+     * 弾の軌跡エフェクトを生成
+     * @param {number} x - 発生X座標
+     * @param {number} y - 発生Y座標
+     * @param {number} vx - 弾のX方向速度
+     * @param {number} vy - 弾のY方向速度
+     * @param {string} [color] - エフェクトの色（オプション）
+     * @param {number} [scale] - スケールファクター（オプション）
+     */
+    createBulletTrailEffect(x, y, vx, vy, color = '#ffffff', scale = 1) {
+        // 軌跡パーティクルを複数生成
+        const trailCount = 3;
+        for (let i = 0; i < trailCount; i++) {
+            const offset = i * 2; // 軌跡の間隔
+            const trailX = x - (vx / 10) * offset; // 速度に基づいて軌跡を後ろに配置
+            const trailY = y - (vy / 10) * offset;
+
+            this.particles.push({
+                x: trailX,
+                y: trailY,
+                vx: vx * 0.1, // 弾より遅い速度で追従
+                vy: vy * 0.1,
+                size: (1 + Math.random() * 1.5) * scale, // 小さめのサイズ
+                color: color,
+                lifetime: 8 + Math.random() * 6, // より短い生存時間（8-14フレーム）
+                type: 'bulletTrail', // 弾軌跡タイプ
+                alpha: 0.8 - (i * 0.2), // 後ろの軌跡ほど透明
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.1
+            });
+        }
+    }
+
+    /**
      * ダメージ表示エフェクトを生成
      * @param {number} x - 発生X座標
      * @param {number} y - 発生Y座標
@@ -118,12 +221,21 @@ class EffectManager {
             particle.x += particle.vx;
             particle.y += particle.vy;
             particle.lifetime--;
-            
+
+            // 爆発エフェクトの半径を更新
+            if (particle.type === 'explosion') {
+                if (particle.lifetime <= (30 - particle.explosionDelay)) {
+                    // 遅延後、半径を増加させる
+                    const progress = (30 - particle.explosionDelay - particle.lifetime) / (30 - particle.explosionDelay);
+                    particle.currentRadius = particle.explosionRadius * Math.min(progress, 1);
+                }
+            }
+
             // 透明度を時間とともに減少
             if (particle.lifetime < 20) {
                 particle.alpha = particle.lifetime / 20;
             }
-            
+
             return particle.lifetime > 0;
         });
     }
@@ -212,6 +324,24 @@ class EffectManager {
                 this.drawDamageText(ctx, particle);
                 return;
             }
+
+            // 弾軌跡タイプの場合は専用の描画処理
+            if (particle.type === 'bulletTrail') {
+                this.drawBulletTrail(ctx, particle);
+                return;
+            }
+
+            // 爆発タイプの場合は専用の描画処理
+            if (particle.type === 'explosion') {
+                this.drawExplosion(ctx, particle);
+                return;
+            }
+
+            // スプラッシュタイプの場合は専用の描画処理
+            if (particle.type === 'splash') {
+                this.drawSplash(ctx, particle);
+                return;
+            }
             
             ctx.save();
             
@@ -281,37 +411,164 @@ class EffectManager {
     }
 
     /**
+     * 爆発エフェクトを描画
+     * @param {CanvasRenderingContext2D} ctx - キャンバスコンテキスト
+     * @param {Object} particle - パーティクルデータ
+     */
+    drawExplosion(ctx, particle) {
+        ctx.save();
+
+        // 透明度設定
+        ctx.globalAlpha = particle.alpha;
+
+        // 円の輪郭を描画（塗りつぶしなし）
+        ctx.strokeStyle = particle.color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.currentRadius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 内側にもう一つの円を描画して厚みを出す
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = particle.alpha * 0.5;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.currentRadius * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    /**
+     * スプラッシュエフェクトを描画
+     * @param {CanvasRenderingContext2D} ctx - キャンバスコンテキスト
+     * @param {Object} particle - パーティクルデータ
+     */
+    drawSplash(ctx, particle) {
+        ctx.save();
+
+        // 透明度設定
+        const alpha = Math.min(1.0, particle.lifetime / 25) * particle.alpha;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = particle.color;
+
+        // 回転と位置の変換
+        ctx.translate(particle.x, particle.y);
+        particle.rotation += particle.rotationSpeed;
+        ctx.rotate(particle.rotation);
+
+        // 図形に応じた描画
+        switch (particle.splashShape) {
+            case 'square':
+                ctx.fillRect(
+                    -particle.size / 2,
+                    -particle.size / 2,
+                    particle.size,
+                    particle.size
+                );
+                break;
+
+            case 'triangle':
+                ctx.beginPath();
+                ctx.moveTo(0, -particle.size / 2);
+                ctx.lineTo(-particle.size / 2, particle.size / 2);
+                ctx.lineTo(particle.size / 2, particle.size / 2);
+                ctx.closePath();
+                ctx.fill();
+                break;
+
+            case 'diamond':
+                ctx.beginPath();
+                ctx.moveTo(0, -particle.size / 2);
+                ctx.lineTo(particle.size / 2, 0);
+                ctx.lineTo(0, particle.size / 2);
+                ctx.lineTo(-particle.size / 2, 0);
+                ctx.closePath();
+                ctx.fill();
+                break;
+
+            case 'star':
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const angle = i * Math.PI * 0.4;
+                    const radius = particle.size / 2;
+                    ctx.lineTo(
+                        Math.cos(angle) * radius,
+                        Math.sin(angle) * radius
+                    );
+                }
+                ctx.closePath();
+                ctx.fill();
+                break;
+
+            default: // 'circle'
+                ctx.beginPath();
+                ctx.arc(0, 0, particle.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * 弾軌跡エフェクトを描画
+     * @param {CanvasRenderingContext2D} ctx - キャンバスコンテキスト
+     * @param {Object} particle - パーティクルデータ
+     */
+    drawBulletTrail(ctx, particle) {
+        ctx.save();
+
+        // 透明度設定
+        ctx.globalAlpha = particle.alpha;
+
+        // 軌跡は小さな円形で表現
+        ctx.fillStyle = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 光るような効果を追加（オプション）
+        ctx.globalAlpha = particle.alpha * 0.5;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size / 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    /**
      * ダメージテキストを描画
      * @param {CanvasRenderingContext2D} ctx - キャンバスコンテキスト
      * @param {Object} particle - パーティクルデータ
      */
     drawDamageText(ctx, particle) {
         ctx.save();
-        
+
         // 透明度設定
         ctx.globalAlpha = particle.alpha;
-        
+
         // フォント設定
         ctx.font = `bold ${particle.size}px Arial`;
         ctx.fillStyle = particle.color;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        
+
         // 影を追加して視認性向上
         ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
         ctx.shadowBlur = 3;
         ctx.shadowOffsetX = 1;
         ctx.shadowOffsetY = 1;
-        
+
         // ダメージ値を描画
         ctx.fillText(particle.damageValue.toString(), particle.x, particle.y);
-        
+
         // 影をリセット
         ctx.shadowColor = 'transparent';
         ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
-        
+
         ctx.restore();
     }
 }
