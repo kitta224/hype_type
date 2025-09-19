@@ -659,6 +659,9 @@ function startGame() {
 
         // ウェーブ統合設定
         upgradeUI.setupWaveIntegration(wave);
+
+        // ゲーム開始時に初期ポイントを与える
+        upgradeUI.setInitialPoints(2);
     }
 }
 

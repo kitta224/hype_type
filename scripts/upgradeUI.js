@@ -7,6 +7,11 @@ let upgradeData = null;
 let upgradePoints = 0;
 let acquiredUpgrades = new Set();
 
+// デバッグ用にグローバルに公開
+window.hypeType = window.hypeType || {};
+window.hypeType.upgradePoints = upgradePoints;
+window.hypeType.acquiredUpgrades = acquiredUpgrades;
+
 class UpgradeUI {
     constructor() {
         this.overlay = null;
@@ -69,10 +74,8 @@ class UpgradeUI {
         this.overlay.style.display = 'block';
         window.gamePaused = true;
         this.updateUpgradeSidePanel();
-        if (window.__needUpgradeLayout) {
-            window.__needUpgradeLayout = false;
-            this.buildUpgradeUI();
-        }
+        // アップグレード画面を開くたびにUIを再構築して最新の状態を反映
+        this.buildUpgradeUI();
         // BGM一時停止と効果音再生
         if (typeof bgmManager !== 'undefined' && bgmManager.pause) {
             bgmManager.pause();
@@ -425,6 +428,12 @@ class UpgradeUI {
             upgradePoints += 1;
             this.updateUpgradeSidePanel();
         }.bind(this);
+    }
+
+    // 初期ポイントを設定
+    setInitialPoints(points) {
+        upgradePoints = points;
+        this.updateUpgradeSidePanel();
     }
 }
 

@@ -1,4 +1,8 @@
 {
+  "_comment": "HypeType Upgrade System Documentation",
+  "_version": "1.0",
+  "_description": "This file defines the upgrade tree structure and effects for the HypeType game",
+
   "trees": [
     {
       "id": "main",
@@ -9,103 +13,11 @@
           "name": "SPEED OPTIMIZATION",
           "description": "Reduce fire cooldown by 10%",
           "icon": "⚙️",
-          "position": { "x": 0.55, "y": 0.12 },
           "requires": { "and": [] },
           "cost": 1,
           "maxLevel": 1,
           "effects": [
             { "kind": "stat", "target": "weapon.fireCooldownMs", "op": "mul", "value": 0.9 }
-          ]
-        },
-        {
-          "id": "burst_1",
-          "name": "BERWDER",
-          "description": "Increase burst by +1",
-          "icon": "🧪",
-          "position": { "x": 0.38, "y": 0.28 },
-          "requires": { "and": ["speed_opt_1"] },
-          "cost": 1,
-          "maxLevel": 1,
-          "effects": [
-            { "kind": "stat", "target": "weapon.burstCount", "op": "add", "value": 1 }
-          ]
-        },
-        {
-          "id": "chill_bias",
-          "name": "CRITICAL FLOW",
-          "description": "Chill grows faster (status dps growth +30%)",
-          "icon": "❄️",
-          "position": { "x": 0.52, "y": 0.42 },
-          "requires": { "and": ["burst_1"] },
-          "cost": 1,
-          "maxLevel": 1,
-          "effects": [
-            { "kind": "special", "type": "status_tuning", "path": "chill.dpsGrowthMul", "op": "mul", "value": 1.3 }
-          ]
-        },
-        {
-          "id": "freeze_path",
-          "name": "TUNMI PROCST",
-          "description": "Freeze lasts +30%",
-          "icon": "🧊",
-          "position": { "x": 0.77, "y": 0.36 },
-          "requires": { "and": ["chill_bias"] },
-          "cost": 1,
-          "maxLevel": 1,
-          "effects": [
-            { "kind": "special", "type": "status_tuning", "path": "freeze.durationMul", "op": "mul", "value": 1.3 }
-          ]
-        },
-        {
-          "id": "spread_ctrl",
-          "name": "SPEED OPTIMIZATION",
-          "description": "Reduce spread by 30%",
-          "icon": "📐",
-          "position": { "x": 0.22, "y": 0.52 },
-          "requires": { "and": ["burst_1"] },
-          "cost": 1,
-          "maxLevel": 1,
-          "effects": [
-            { "kind": "stat", "target": "weapon.spreadDeg", "op": "mul", "value": 0.7 }
-          ]
-        },
-        {
-          "id": "bleed_path",
-          "name": "CYRABTIC GOBS",
-          "description": "Bleed percent per sec +0.02",
-          "icon": "🩸",
-          "position": { "x": 0.52, "y": 0.7 },
-          "requires": { "and": ["chill_bias"] },
-          "cost": 1,
-          "maxLevel": 1,
-          "effects": [
-            { "kind": "special", "type": "status_base_add", "path": "bleed.percentPerSec", "op": "add", "value": 0.02 }
-          ]
-        },
-        {
-          "id": "spread_alt",
-          "name": "SPEED OPTIMIZATION",
-          "description": "Improve reload sequence",
-          "icon": "🧰",
-          "position": { "x": 0.18, "y": 0.28 },
-          "requires": { "and": [] },
-          "cost": 1,
-          "maxLevel": 1,
-          "effects": [
-            { "kind": "stat", "target": "weapon.fireCooldownMs", "op": "mul", "value": 0.92 }
-          ]
-        },
-        {
-          "id": "core_final",
-          "name": "CLAIMFOAT",
-          "description": "+1 Pierce",
-          "icon": "⚡",
-          "position": { "x": 0.76, "y": 0.74 },
-          "requires": { "and": ["freeze_path", "bleed_path"] },
-          "cost": 1,
-          "maxLevel": 1,
-          "effects": [
-            { "kind": "stat", "target": "weapon.pierceCount", "op": "add", "value": 1 }
           ]
         }
       ]
