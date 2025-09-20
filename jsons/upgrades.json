@@ -1,23 +1,416 @@
 {
-  "_comment": "HypeType Upgrade System Documentation",
-  "_version": "1.0",
-  "_description": "This file defines the upgrade tree structure and effects for the HypeType game",
-
   "trees": [
     {
       "id": "main",
       "name": "Neural Network",
       "nodes": [
         {
-          "id": "speed_opt_1",
-          "name": "SPEED OPTIMIZATION",
-          "description": "Reduce fire cooldown by 10%",
-          "icon": "⚙️",
-          "requires": { "and": [] },
+          "id": "core_damage_1",
+          "name": "DAMAGE BOOST I",
+          "description": "Increase bullet damage by 20%",
+          "icon": "💥",
           "cost": 1,
-          "maxLevel": 1,
+          "effects": [
+            { "kind": "stat", "target": "weapon.bulletDamage", "op": "mul", "value": 1.2 }
+          ]
+        },
+        {
+          "id": "core_damage_2",
+          "name": "DAMAGE BOOST II",
+          "description": "Increase bullet damage by 20%",
+          "icon": "💥",
+          "requires": { "and": ["core_damage_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.bulletDamage", "op": "mul", "value": 1.2 }
+          ]
+        },
+        {
+          "id": "core_damage_3",
+          "name": "DAMAGE BOOST III",
+          "description": "Increase bullet damage by 20%",
+          "icon": "💥",
+          "requires": { "and": ["core_damage_2"] },
+          "cost": 3,
+          "effects": [
+            { "kind": "stat", "target": "weapon.bulletDamage", "op": "mul", "value": 1.2 }
+          ]
+        },
+        {
+          "id": "core_speed_1",
+          "name": "SPEED BOOST I",
+          "description": "Reduce fire cooldown by 10%",
+          "icon": "⚡",
+          "cost": 1,
           "effects": [
             { "kind": "stat", "target": "weapon.fireCooldownMs", "op": "mul", "value": 0.9 }
+          ]
+        },
+        {
+          "id": "core_speed_2",
+          "name": "SPEED BOOST II",
+          "description": "Reduce fire cooldown by 10%",
+          "icon": "⚡",
+          "requires": { "and": ["core_speed_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.fireCooldownMs", "op": "mul", "value": 0.9 }
+          ]
+        },
+        {
+          "id": "core_speed_3",
+          "name": "SPEED BOOST III",
+          "description": "Reduce fire cooldown by 10%",
+          "icon": "⚡",
+          "requires": { "and": ["core_speed_2"] },
+          "cost": 3,
+          "effects": [
+            { "kind": "stat", "target": "weapon.fireCooldownMs", "op": "mul", "value": 0.9 }
+          ]
+        },
+        {
+          "id": "core_bullet_speed",
+          "name": "BULLET VELOCITY",
+          "description": "Increase bullet speed by 25%",
+          "icon": "🏹",
+          "cost": 1,
+          "effects": [
+            { "kind": "stat", "target": "weapon.bulletSpeed", "op": "mul", "value": 1.25 }
+          ]
+        },
+        {
+          "id": "core_range",
+          "name": "EXTENDED RANGE",
+          "description": "Increase bullet lifetime by 25%",
+          "icon": "📡",
+          "cost": 1,
+          "effects": [
+            { "kind": "stat", "target": "weapon.lifeTimeMs", "op": "mul", "value": 1.25 }
+          ]
+        },
+        {
+          "id": "core_spread",
+          "name": "SPREAD CONTROL",
+          "description": "Reduce spread angle by 20%",
+          "icon": "🎯",
+          "cost": 1,
+          "effects": [
+            { "kind": "stat", "target": "weapon.spreadDeg", "op": "mul", "value": 0.8 }
+          ]
+        },
+        {
+          "id": "core_reload",
+          "name": "BURST CONTROL",
+          "description": "Reduce shot delay in bursts by 15%",
+          "icon": "🔫",
+          "cost": 1,
+          "effects": [
+            { "kind": "stat", "target": "weapon.shotDelayMs", "op": "mul", "value": 0.85 }
+          ]
+        },
+        {
+          "id": "core_multi_1",
+          "name": "DUAL SHOT",
+          "description": "Fire an additional bullet per burst",
+          "icon": "✨",
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.burstCount", "op": "add", "value": 1 }
+          ]
+        },
+        {
+          "id": "core_multi_2",
+          "name": "TRIPLE SHOT",
+          "description": "Fire two extra bullets per burst",
+          "icon": "🌟",
+          "requires": { "and": ["core_multi_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.burstCount", "op": "add", "value": 2 }
+          ]
+        },
+        {
+          "id": "aoe_1",
+          "name": "EXPLOSIVE BULLETS",
+          "description": "Bullets explode with small radius",
+          "icon": "💥",
+          "cost": 1,
+          "effects": [
+            { "kind": "stat", "target": "weapon.aoeRadius", "op": "add", "value": 20 }
+          ]
+        },
+        {
+          "id": "aoe_2",
+          "name": "BIGGER BOOM",
+          "description": "Explosion radius +50%",
+          "icon": "💣",
+          "requires": { "and": ["aoe_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.aoeRadius", "op": "mul", "value": 1.5 }
+          ]
+        },
+        {
+          "id": "aoe_3",
+          "name": "CHAIN EXPLOSION",
+          "description": "Explosions trigger secondary blasts",
+          "icon": "🔥",
+          "requires": { "and": ["aoe_2"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.aoeRadius", "op": "add", "value": 30 }
+          ]
+        },
+        {
+          "id": "aoe_4",
+          "name": "EXPLOSION DAMAGE",
+          "description": "Explosions deal +50% damage",
+          "icon": "💥",
+          "requires": { "and": ["aoe_2"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.bulletDamage", "op": "mul", "value": 1.5 }
+          ]
+        },
+        {
+          "id": "aoe_ultimate",
+          "name": "NUCLEAR STRIKE",
+          "description": "Massive explosion on hit",
+          "icon": "☢️",
+          "rarity": "legendary",
+          "special": true,
+          "requires": { "and": ["aoe_3"] },
+          "cost": 4,
+          "effects": [
+            { "kind": "stat", "target": "weapon.aoeRadius", "op": "mul", "value": 3.0 },
+            { "kind": "stat", "target": "weapon.bulletDamage", "op": "mul", "value": 2.0 }
+          ]
+        },
+        {
+          "id": "burst_1",
+          "name": "FASTER BURST",
+          "description": "Reduce burst delay by 20%",
+          "icon": "🔫",
+          "cost": 1,
+          "effects": [
+            { "kind": "stat", "target": "weapon.shotDelayMs", "op": "mul", "value": 0.8 }
+          ]
+        },
+        {
+          "id": "burst_2",
+          "name": "BURST DAMAGE",
+          "description": "Damage per bullet +20%",
+          "icon": "💥",
+          "requires": { "and": ["burst_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.bulletDamage", "op": "mul", "value": 1.2 }
+          ]
+        },
+        {
+          "id": "burst_3",
+          "name": "BURST COUNT",
+          "description": "Fire +1 bullet per burst",
+          "icon": "✨",
+          "requires": { "and": ["burst_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.burstCount", "op": "add", "value": 1 }
+          ]
+        },
+        {
+          "id": "ricochet_1",
+          "name": "RICHOCHET SHOT",
+          "description": "Bullets can bounce once",
+          "icon": "🎱",
+          "cost": 1,
+          "effects": [
+            { "kind": "stat", "target": "weapon.ricochetCount", "op": "add", "value": 1 }
+          ]
+        },
+        {
+          "id": "ricochet_2",
+          "name": "DOUBLE RICOCHET",
+          "description": "Extra bounce",
+          "icon": "🎱",
+          "requires": { "and": ["ricochet_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.ricochetCount", "op": "add", "value": 1 }
+          ]
+        },
+        {
+          "id": "chain_1",
+          "name": "CHAIN SHOT",
+          "description": "Bullets chain to 1 enemy",
+          "icon": "⚡",
+          "cost": 1,
+          "effects": [
+            { "kind": "stat", "target": "weapon.chainCount", "op": "add", "value": 1 }
+          ]
+        },
+        {
+          "id": "chain_2",
+          "name": "CHAIN RANGE",
+          "description": "Increase chain range by 50%",
+          "icon": "⚡",
+          "requires": { "and": ["chain_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.chainRange", "op": "mul", "value": 1.5 }
+          ]
+        },
+        {
+          "id": "pierce_1",
+          "name": "PIERCING SHOT",
+          "description": "Bullets pierce 1 enemy",
+          "icon": "🎯",
+          "cost": 1,
+          "effects": [
+            { "kind": "stat", "target": "weapon.pierceCount", "op": "add", "value": 1 }
+          ]
+        },
+        {
+          "id": "pierce_2",
+          "name": "MULTI PIERCE",
+          "description": "Extra pierce",
+          "icon": "🎯",
+          "requires": { "and": ["pierce_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.pierceCount", "op": "add", "value": 1 }
+          ]
+        },
+        {
+          "id": "spread_1",
+          "name": "SPREAD SHOT",
+          "description": "Increase burst bullets +2, wider angle",
+          "icon": "🌌",
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.burstCount", "op": "add", "value": 2 },
+            { "kind": "stat", "target": "weapon.spreadDeg", "op": "add", "value": 10 }
+          ]
+        },
+        {
+          "id": "spread_2",
+          "name": "WIDER SPREAD",
+          "description": "Increase spread angle",
+          "icon": "🌌",
+          "requires": { "and": ["spread_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "stat", "target": "weapon.spreadDeg", "op": "add", "value": 15 }
+          ]
+        },
+        {
+          "id": "burn_1",
+          "name": "IGNITE",
+          "description": "Bullets apply burn (longer duration)",
+          "icon": "🔥",
+          "cost": 1,
+          "effects": [
+            { "kind": "special", "type": "status_tuning", "path": "burn.durationMul", "op": "mul", "value": 1.5 }
+          ]
+        },
+        {
+          "id": "burn_2",
+          "name": "FIREPOWER",
+          "description": "Burn DPS +50%",
+          "icon": "🔥",
+          "requires": { "and": ["burn_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "special", "type": "status_tuning", "path": "burn.dpsMul", "op": "mul", "value": 1.5 }
+          ]
+        },
+        {
+          "id": "chill_1",
+          "name": "CHILL SHOT",
+          "description": "Bullets apply chill (slows enemies)",
+          "icon": "❄️",
+          "cost": 1,
+          "effects": [
+            { "kind": "special", "type": "status_tuning", "path": "chill.slowFactorMul", "op": "mul", "value": 0.8 }
+          ]
+        },
+        {
+          "id": "chill_2",
+          "name": "COLD SNAP",
+          "description": "Increase chill duration",
+          "icon": "❄️",
+          "requires": { "and": ["chill_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "special", "type": "status_tuning", "path": "chill.durationMul", "op": "mul", "value": 1.5 }
+          ]
+        },
+        {
+          "id": "freeze_1",
+          "name": "FREEZE SHOT",
+          "description": "Bullets freeze briefly",
+          "icon": "🧊",
+          "cost": 2,
+          "effects": [
+            { "kind": "special", "type": "status_tuning", "path": "freeze.durationMul", "op": "mul", "value": 1.5 }
+          ]
+        },
+        {
+          "id": "bleed_1",
+          "name": "BLEED SHOT",
+          "description": "Bullets cause bleeding over time",
+          "icon": "🩸",
+          "cost": 1,
+          "effects": [
+            { "kind": "special", "type": "status_tuning", "path": "bleed.percentPerSecMul", "op": "mul", "value": 1.5 }
+          ]
+        },
+        {
+          "id": "bleed_2",
+          "name": "DEEP CUTS",
+          "description": "Bleed duration +50%",
+          "icon": "🩸",
+          "requires": { "and": ["bleed_1"] },
+          "cost": 2,
+          "effects": [
+            { "kind": "special", "type": "status_tuning", "path": "bleed.durationMul", "op": "mul", "value": 1.5 }
+          ]
+        },
+        {
+          "id": "legend_blackhole",
+          "name": "BLACK HOLE",
+          "description": "Bullets pull enemies into a vortex",
+          "icon": "🌀",
+          "rarity": "legendary",
+          "special": true,
+          "cost": 4,
+          "effects": [
+            { "kind": "stat", "target": "weapon.aoeRadius", "op": "mul", "value": 4.0 }
+          ]
+        },
+        {
+          "id": "legend_time_stop",
+          "name": "TIME STOP",
+          "description": "Briefly freeze all enemies hit",
+          "icon": "⏰",
+          "rarity": "legendary",
+          "special": true,
+          "cost": 4,
+          "effects": [
+            { "kind": "special", "type": "status_tuning", "path": "freeze.durationMul", "op": "mul", "value": 3.0 }
+          ]
+        },
+        {
+          "id": "legend_bullet_hell",
+          "name": "BULLET HELL",
+          "description": "Unleash a massive storm of bullets",
+          "icon": "🌟",
+          "rarity": "legendary",
+          "special": true,
+          "cost": 4,
+          "effects": [
+            { "kind": "stat", "target": "weapon.burstCount", "op": "add", "value": 10 },
+            { "kind": "stat", "target": "weapon.spreadDeg", "op": "add", "value": 30 }
           ]
         }
       ]

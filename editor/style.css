@@ -37,7 +37,7 @@ body {
 .points-badge { position:absolute; top:10px; right:10px; background:rgba(50,60,70,0.92); color:#e9edf2; padding:6px 10px; border-radius:8px; font-weight:700; }
 
 /* Node card similar to game */
-.node-card { position:absolute; width: 240px; background: rgba(130,195,255,0.95); color:#0e2a3b; border-radius:10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); cursor:grab; }
+.node-card { position:absolute; width: 240px; color:#0e2a3b; border-radius:10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); cursor:grab; }
 .node-card .head{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px 0 12px; }
 .node-card .title{ font-weight:700; font-size:14px; }
 .node-card .icon{ font-size:18px; }
@@ -45,6 +45,21 @@ body {
 .node-card .footer{ display:flex; justify-content:flex-end; padding:8px 12px 12px 12px; }
 .node-card .btn{ border:none; background:#102a3b; color:#e8f3ff; padding:6px 10px; border-radius:6px; }
 .node-card.locked{ filter:grayscale(0.3) opacity(0.8); }
+.node-card.selected { box-shadow: 0 15px 40px rgba(0,0,0,0.3); transform: scale(1.05); z-index: 10; }
+.node-card.exclusive-group.selected { box-shadow: 0 15px 40px rgba(255,23,68,0.5); }
+
+/* レアリティによる色分け */
+.node-card.rarity-common { background: rgba(130,195,255,0.95); }
+.node-card.rarity-rare { background: rgba(147,112,219,0.95); color:#fff; }
+.node-card.rarity-epic { background: rgba(255,165,0,0.95); color:#fff; }
+.node-card.rarity-legendary { background: rgba(255,215,0,0.95); color:#000; box-shadow: 0 10px 30px rgba(255,215,0,0.4); }
+
+/* ノードタイプによるスタイル */
+.node-card.type-special { border: 3px solid #ff6b35; }
+.node-card.type-exclusive { border: 3px solid #ff1744; }
+
+/* 排他的グループのスタイル */
+.node-card.exclusive-group { box-shadow: 0 10px 30px rgba(255,23,68,0.3); }
 
 .edge-path{ fill:none; stroke:#7cc2ff; stroke-width:2; opacity:0.9; }
 

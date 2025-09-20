@@ -628,3 +628,235 @@ canvas {
 .pause-button:active {
     transform: translateY(0);
 }
+
+/* 排他的選択グループのスタイル */
+.node-card.exclusive-group-member {
+    border: 2px solid transparent;
+    transition: border-color 0.3s ease;
+}
+
+.node-card.exclusive-group-member:hover {
+    border-color: var(--accent);
+}
+
+.node-card.exclusive-locked {
+    background: rgba(255, 193, 193, 0.8) !important;
+    filter: grayscale(0.6) opacity(0.6) !important;
+    cursor: not-allowed;
+}
+
+.node-card.exclusive-locked .btn {
+    background: #666 !important;
+    cursor: not-allowed;
+}
+
+.node-card.exclusive-locked .btn:hover {
+    background: #666 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* 排他的グループ内の選択済みアップグレードの強調表示 */
+.node-card.acquired[data-exclusive-group] {
+    box-shadow: 0 0 20px rgba(255, 152, 0, 0.6);
+    border: 2px solid var(--accent);
+}
+
+/* 排他的グループのツールチップ */
+.node-card.exclusive-group-member::before {
+    content: "⚡ Exclusive Choice";
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-panel);
+    color: var(--accent);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.node-card.exclusive-group-member:hover::before {
+    opacity: 1;
+}
+
+/* 特殊ノードのスタイル */
+.node-card.special-node {
+    position: relative;
+    transform: scale(1.1);
+    z-index: 10;
+    animation: specialNodeGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes specialNodeGlow {
+    from {
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    }
+    to {
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.6);
+    }
+}
+
+/* レアリティ別のスタイル */
+.node-card.rarity-common {
+    background: linear-gradient(135deg, rgba(169, 169, 169, 0.9), rgba(211, 211, 211, 0.9));
+    border: 3px solid #888888;
+}
+
+.node-card.rarity-rare {
+    background: linear-gradient(135deg, rgba(65, 105, 225, 0.9), rgba(100, 149, 237, 0.9));
+    border: 3px solid #4169E1;
+    animation: rareGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes rareGlow {
+    from {
+        box-shadow: 0 0 25px rgba(65, 105, 225, 0.4);
+    }
+    to {
+        box-shadow: 0 0 35px rgba(65, 105, 225, 0.7);
+    }
+}
+
+.node-card.rarity-epic {
+    background: linear-gradient(135deg, rgba(128, 0, 128, 0.9), rgba(186, 85, 211, 0.9));
+    border: 3px solid #9932CC;
+    animation: epicGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes epicGlow {
+    from {
+        box-shadow: 0 0 30px rgba(128, 0, 128, 0.5);
+    }
+    to {
+        box-shadow: 0 0 40px rgba(128, 0, 128, 0.8);
+    }
+}
+
+.node-card.rarity-legendary {
+    background: linear-gradient(135deg, rgba(255, 140, 0, 0.9), rgba(255, 215, 0, 0.9));
+    border: 3px solid #FF8C00;
+    animation: legendaryGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes legendaryGlow {
+    from {
+        box-shadow: 0 0 35px rgba(255, 140, 0, 0.6);
+    }
+    to {
+        box-shadow: 0 0 50px rgba(255, 140, 0, 1.0);
+    }
+}
+
+/* 特殊効果ノードの追加スタイル */
+.node-card.special-effect {
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(255, 69, 0, 0.9)) !important;
+    border: 3px solid #DC143C;
+    animation: specialEffectGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes specialEffectGlow {
+    from {
+        box-shadow: 0 0 40px rgba(220, 20, 60, 0.5);
+    }
+    to {
+        box-shadow: 0 0 55px rgba(220, 20, 60, 0.8);
+    }
+}
+
+/* 特殊ノードのテキストスタイル */
+.node-card.special-node .title {
+    color: #ffffff !important;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    font-weight: 800 !important;
+}
+
+.node-card.special-node .icon {
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.9);
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.7));
+}
+
+.node-card.special-node .body {
+    color: #ffffff !important;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+}
+
+.node-card.special-node .btn {
+    background: linear-gradient(45deg, #FFD700, #FFA500) !important;
+    color: #000000 !important;
+    font-weight: 800 !important;
+    text-shadow: none;
+    border: 2px solid #FF8C00;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+.node-card.special-node .btn:hover {
+    background: linear-gradient(45deg, #FFA500, #FF8C00) !important;
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
+}
+
+/* 特殊ノードのロック状態 */
+.node-card.special-node.locked {
+    filter: grayscale(0.3) opacity(0.8);
+    animation: none;
+}
+
+.node-card.special-node.locked .btn {
+    background: #666 !important;
+    color: #ccc !important;
+    box-shadow: none;
+}
+
+/* 特殊ノード取得済み状態 */
+.node-card.special-node.acquired {
+    animation: acquiredSpecialGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes acquiredSpecialGlow {
+    from {
+        box-shadow: 0 0 40px rgba(50, 205, 50, 0.6);
+    }
+    to {
+        box-shadow: 0 0 60px rgba(50, 205, 50, 0.9);
+    }
+}
+
+/* 特殊ノード取得済み時の追加効果 */
+.node-card.acquired-special {
+    border: 3px solid #32CD32 !important;
+    background: linear-gradient(135deg, rgba(50, 205, 50, 0.9), rgba(144, 238, 144, 0.9)) !important;
+}
+
+.node-card.acquired-special .title {
+    color: #ffffff !important;
+    text-shadow: 0 0 10px rgba(50, 205, 50, 0.8) !important;
+}
+
+.node-card.acquired-special .btn {
+    background: linear-gradient(45deg, #32CD32, #228B22) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    border: 2px solid #228B22 !important;
+    box-shadow: 0 0 20px rgba(50, 205, 50, 0.6) !important;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 1200px) {
+    .node-card.special-node {
+        transform: scale(1.05);
+    }
+
+    .node-card.special-node .title {
+        font-size: 14px;
+    }
+
+    .node-card.special-node .body {
+        font-size: 11px;
+    }
+}

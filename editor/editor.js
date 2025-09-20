@@ -22,6 +22,9 @@ const propIcon = $('#propIcon');
 const propDesc = $('#propDesc');
 const propCost = $('#propCost');
 const propMaxLv = $('#propMaxLv');
+const propRarity = $('#propRarity');
+const propNodeType = $('#propNodeType');
+const propExclusiveGroup = $('#propExclusiveGroup');
 const requiresList = $('#requiresList');
 const reqLogic = $('#reqLogic');
 const effectsList = $('#effectsList');
@@ -105,9 +108,27 @@ function rebuildNodes(){
        }
        n.requires = n.requires || { and: [] };
        n.effects = n.effects || [];
+       n.rarity = n.rarity || 'common';
+       n.nodeType = n.nodeType || 'normal';
+       n.exclusiveGroup = n.exclusiveGroup || '';
 
        const el = tplNode.content.firstElementChild.cloneNode(true);
        el.dataset.nodeId = n.id;
+
+       // レアリティによるクラス追加
+       const rarity = n.rarity || 'common';
+       el.classList.add(`rarity-${rarity}`);
+
+       // ノードタイプによるクラス追加
+       const nodeType = n.nodeType || 'normal';
+       el.classList.add(`type-${nodeType}`);
+
+       // 排他的グループによるクラス追加
+       if (n.exclusiveGroup) {
+         el.classList.add('exclusive-group');
+         el.dataset.exclusiveGroup = n.exclusiveGroup;
+       }
+
        el.querySelector('.title').textContent = n.name || n.id;
        el.querySelector('.icon').textContent = n.icon || '⚙️';
        el.querySelector('.body').textContent = n.description || '';
@@ -231,16 +252,36 @@ function drawEdges(){
 }
 
 function selectNode(id){
-  selectedNodeId = id;
-  $$('#nodes .node-card').forEach(el => el.classList.toggle('selected', el.dataset.nodeId === id));
-  const n = getNodeById(id);
-  if (!n) return;
-  propId.value = n.id || '';
+   const n = getNodeById(id);
+   if (!n) return;
+
+   // 排他的選択グループの処理
+   if (n.exclusiveGroup) {
+     // 同じグループ内の他のノードの選択を解除
+     const tree = getTree();
+     tree.nodes.forEach(otherNode => {
+       if (otherNode.id !== id && otherNode.exclusiveGroup === n.exclusiveGroup) {
+         // 他のノードの選択を解除
+         $$('#nodes .node-card').forEach(el => {
+           if (el.dataset.nodeId === otherNode.id) {
+             el.classList.remove('selected');
+           }
+         });
+       }
+     });
+   }
+
+   selectedNodeId = id;
+   $$('#nodes .node-card').forEach(el => el.classList.toggle('selected', el.dataset.nodeId === id));
+   propId.value = n.id || '';
   propName.value = n.name || '';
   propIcon.value = n.icon || '';
   propDesc.value = n.description || '';
   propCost.value = n.cost != null ? n.cost : 0;
   propMaxLv.value = n.maxLevel != null ? n.maxLevel : 1;
+  propRarity.value = n.rarity || 'common';
+  propNodeType.value = n.nodeType || 'normal';
+  propExclusiveGroup.value = n.exclusiveGroup || '';
   reqLogic.value = n.requires && n.requires.or ? 'or' : 'and';
   buildRequiresEditor(n);
   buildEffectsEditor(n);
@@ -379,6 +420,9 @@ function saveInspector(){
   n.description = propDesc.value;
   n.cost = parseInt(propCost.value||'0', 10);
   n.maxLevel = parseInt(propMaxLv.value||'1', 10);
+  n.rarity = propRarity.value;
+  n.nodeType = propNodeType.value;
+  n.exclusiveGroup = propExclusiveGroup.value.trim();
   // rebuild titles/icons text live
   const el = $(`#nodes .node-card[data-node-id="${CSS.escape(selectedNodeId)}"]`);
   if (el){
@@ -427,11 +471,24 @@ $('#treeName').addEventListener('input', ()=>{
 
 // Node add/remove
 $('#btnAddNode').addEventListener('click', ()=>{
-  const nid = `node_${Math.random().toString(36).slice(2,8)}`;
-  const n = { id: nid, name: 'New Node', description: '', icon: '⚙️', position:{x:0.5,y:0.2}, requires:[], cost:1, maxLevel:1, effects:[] };
-  getTree().nodes.push(n);
-  rebuildNodes();
-  selectNode(nid);
+   const nid = `node_${Math.random().toString(36).slice(2,8)}`;
+   const n = {
+     id: nid,
+     name: 'New Node',
+     description: '',
+     icon: '⚙️',
+     position:{x:0.5,y:0.2},
+     requires:{ and: [] },
+     cost:1,
+     maxLevel:1,
+     rarity: 'common',
+     nodeType: 'normal',
+     exclusiveGroup: '',
+     effects:[]
+   };
+   getTree().nodes.push(n);
+   rebuildNodes();
+   selectNode(nid);
 });
 $('#btnRemoveNode').addEventListener('click', ()=>{
   if (!selectedNodeId) return;
@@ -485,7 +542,7 @@ function updateStats(){
 }
 
 // Inspector bindings
-[propId, propName, propIcon, propDesc, propCost, propMaxLv].forEach(inp => inp.addEventListener('input', saveInspector));
+[propId, propName, propIcon, propDesc, propCost, propMaxLv, propRarity, propNodeType, propExclusiveGroup].forEach(inp => inp.addEventListener('input', saveInspector));
 reqLogic.addEventListener('change', () => {
   if (selectedNodeId) {
     const n = getNodeById(selectedNodeId);

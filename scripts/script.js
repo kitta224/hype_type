@@ -42,7 +42,100 @@ const BASE_ENEMY_RADIUS = 5;
 const BASE_BULLET_RADIUS = 5;
 const PLAYER_MAX_HP = 100;
 const ENEMY_MAX_HP = 30; // 初期値（10倍スケール）：3 -> 30
-const BULLET_SPEED = 10;
+// BULLET_SPEEDはWeaponSystemから取得するように変更
+function getBulletSpeed() {
+    return weapon.getStats().bulletSpeed;
+}
+
+// 他のWeaponSystemプロパティも取得する関数
+function getWeaponStats() {
+    return weapon.getStats();
+}
+
+// デバッグ用に現在のWeaponSystemの状態を表示
+function logWeaponStats() {
+    const stats = getWeaponStats();
+    console.log('Current Weapon Stats:', {
+        bulletSpeed: stats.bulletSpeed,
+        bulletDamage: stats.bulletDamage,
+        fireCooldownMs: stats.fireCooldownMs,
+        ricochetCount: stats.ricochetCount,
+        lifeTimeMs: stats.lifeTimeMs
+    });
+}
+
+// デバッグコマンドをグローバルに公開
+window.hypeType = window.hypeType || {};
+window.hypeType.logWeaponStats = logWeaponStats;
+
+// テスト用のアップグレード適用関数
+window.hypeType.testUpgrade = function(target, op, value) {
+    const stats = getWeaponStats();
+    console.log(`Before: ${target} = ${stats[target]}`);
+
+    if (op === 'add') {
+        weapon.setBase(target, (weapon.base[target] || 0) + value);
+    } else if (op === 'mul') {
+        weapon.setMul(target, (weapon.mul[target] || 1) * value);
+    }
+
+    const newStats = getWeaponStats();
+    console.log(`After: ${target} = ${newStats[target]}`);
+};
+
+// コンソールで使用できる便利なコマンドを追加
+window.hypeType.cmd = function(command) {
+    const args = command.split(' ');
+    const cmd = args[0];
+    const params = args.slice(1);
+
+    switch (cmd) {
+        case 'help':
+            console.log('Available commands:');
+            console.log('  help - Show this help');
+            console.log('  stats - Show current weapon stats');
+            console.log('  upgrade <target> <op> <value> - Test upgrade (e.g., "upgrade bulletSpeed mul 1.5")');
+            console.log('  reset - Reset all upgrades');
+            break;
+
+        case 'stats':
+            logWeaponStats();
+            break;
+
+        case 'upgrade':
+            if (params.length >= 3) {
+                const target = params[0];
+                const op = params[1];
+                const value = parseFloat(params[2]);
+                window.hypeType.testUpgrade(target, op, value);
+            } else {
+                console.log('Usage: upgrade <target> <op> <value>');
+                console.log('Example: upgrade bulletSpeed mul 1.5');
+            }
+            break;
+
+        case 'reset':
+            // すべてのアップグレードをリセット
+            Object.keys(weapon.base).forEach(key => {
+                if (key !== 'bulletDamage' && key !== 'fireCooldownMs' && key !== 'burstCount') {
+                    weapon.setBase(key, 0);
+                }
+            });
+            Object.keys(weapon.mul).forEach(key => {
+                weapon.setMul(key, 1);
+            });
+            console.log('All upgrades reset');
+            logWeaponStats();
+            break;
+
+        default:
+            console.log('Unknown command. Type "help" for available commands.');
+    }
+};
+
+// デバッグ用の説明を表示
+console.log('🎮 HypeType Debug Commands Available!');
+console.log('Type: hypeType.cmd("help") in console for more info');
 const ENEMY_SPAWN_INTERVAL = 2000; // 敵の出現間隔 (ms)
 const ENEMY_BASE_SPEED = 0.25; // 敵の基準移動速度（状態異常で変化）
 let inputEnabled = true; // キーボード入力の有効/無効を制御
@@ -341,6 +434,9 @@ function update(dtSec) {
 
         bullet.move();
 
+        // 壁との衝突判定と跳ね返り処理
+        const ricochetHappened = bullet.checkWallCollisionAndRicochet(canvas.width, canvas.height);
+
         enemies.forEach(enemy => {
             if (bullet.checkEnemyCollision(enemy.x, enemy.y, BULLET_RADIUS, enemy.radius)) {
                 const dmg = (typeof bullet.damage === 'number') ? bullet.damage : 1;
@@ -364,10 +460,16 @@ function update(dtSec) {
     });
 
     // 画面外に出た弾を削除
-    bullets = bullets.filter(bullet => 
+    bullets = bullets.filter(bullet =>
         bullet.x > 0 && bullet.x < canvas.width &&
         bullet.y > 0 && bullet.y < canvas.height
     );
+
+    // ricochetCountが0になった弾を削除
+    bullets = bullets.filter(bullet => bullet.ricochetCount >= 0);
+
+    // 生存時間が過ぎた弾を削除
+    bullets = bullets.filter(bullet => !bullet.checkLifetime(Date.now()));
 }
 
 /**

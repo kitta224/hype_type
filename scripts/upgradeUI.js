@@ -6,11 +6,13 @@ import { updatePauseMenu } from './uiManager.js';
 let upgradeData = null;
 let upgradePoints = 0;
 let acquiredUpgrades = new Set();
+let exclusiveGroups = new Map(); // exclusiveGroup -> Set of upgrade IDs
 
 // デバッグ用にグローバルに公開
 window.hypeType = window.hypeType || {};
 window.hypeType.upgradePoints = upgradePoints;
 window.hypeType.acquiredUpgrades = acquiredUpgrades;
+window.hypeType.exclusiveGroups = exclusiveGroups;
 window.hypeType.upgradeUI = null; // upgradeUIインスタンスを後で設定
 
 class UpgradeUI {
@@ -63,10 +65,27 @@ class UpgradeUI {
         try {
             const res = await fetch('jsons/upgrades.json');
             upgradeData = await res.json();
+            this.buildExclusiveGroups();
         } catch (e) {
             console.error('Failed to load upgrades.json', e);
             upgradeData = { trees: [] };
         }
+    }
+
+    buildExclusiveGroups() {
+        exclusiveGroups.clear();
+        if (!upgradeData || !upgradeData.trees) return;
+
+        upgradeData.trees.forEach(tree => {
+            tree.nodes.forEach(node => {
+                if (node.exclusiveGroup) {
+                    if (!exclusiveGroups.has(node.exclusiveGroup)) {
+                        exclusiveGroups.set(node.exclusiveGroup, new Set());
+                    }
+                    exclusiveGroups.get(node.exclusiveGroup).add(node.id);
+                }
+            });
+        });
     }
 
     // Upgrade overlay functions
@@ -209,7 +228,23 @@ class UpgradeUI {
             card.appendChild(foot);
 
             if (!this.canPurchaseNode(n)) card.classList.add('locked');
-            if (acquiredUpgrades.has(n.id)) card.classList.add('acquired');
+            if (acquiredUpgrades.has(n.id)) {
+                card.classList.add('acquired');
+                // 特殊ノードの場合、特別な取得済み効果を適用
+                if (n.special || n.rarity) {
+                    card.classList.add('acquired-special');
+                }
+            }
+
+            // 排他的グループの視覚的な表現
+            if (n.exclusiveGroup) {
+                this.applyExclusiveGroupStyling(card, n);
+            }
+
+            // 特殊ノードの視覚的な表現
+            if (n.special || n.rarity) {
+                this.applySpecialNodeStyling(card, n);
+            }
 
             this.nodesRoot.appendChild(card);
             // Center anchor
@@ -341,6 +376,11 @@ class UpgradeUI {
     }
 
     acquireNode(node) {
+        // 排他的グループの処理
+        if (node.exclusiveGroup) {
+            this.handleExclusiveGroup(node.exclusiveGroup, node.id);
+        }
+
         upgradePoints -= (node.cost || 0);
         window.hypeType.upgradePoints = upgradePoints; // グローバル参照も更新
         acquiredUpgrades.add(node.id);
@@ -351,6 +391,88 @@ class UpgradeUI {
             li.textContent = node.name;
             this.protocolList.appendChild(li);
         }
+    }
+
+    handleExclusiveGroup(groupName, selectedNodeId) {
+        const group = exclusiveGroups.get(groupName);
+        if (!group) return;
+
+        // 同じグループ内の他のアップグレードを解除
+        group.forEach(nodeId => {
+            if (nodeId !== selectedNodeId && acquiredUpgrades.has(nodeId)) {
+                this.removeNode(nodeId);
+            }
+        });
+    }
+
+    removeNode(nodeId) {
+        if (!acquiredUpgrades.has(nodeId)) return;
+
+        // アップグレードの効果を反転して適用（解除）
+        const node = this.findNodeById(nodeId);
+        if (node && node.effects) {
+            this.reverseNodeEffects(node);
+        }
+
+        // 取得済みリストから削除
+        acquiredUpgrades.delete(nodeId);
+
+        // ポイントを返却（ただし最大ポイント制限を考慮）
+        const nodeCost = node ? (node.cost || 0) : 0;
+        upgradePoints += nodeCost;
+        window.hypeType.upgradePoints = upgradePoints;
+
+        // プロトコルリストから削除
+        if (this.protocolList) {
+            const items = this.protocolList.querySelectorAll('li');
+            items.forEach(item => {
+                if (item.textContent === (node ? node.name : '')) {
+                    item.remove();
+                }
+            });
+        }
+    }
+
+    findNodeById(nodeId) {
+        if (!upgradeData || !upgradeData.trees) return null;
+        for (const tree of upgradeData.trees) {
+            const node = tree.nodes.find(n => n.id === nodeId);
+            if (node) return node;
+        }
+        return null;
+    }
+
+    reverseNodeEffects(node) {
+        if (!node.effects) return;
+        node.effects.forEach(e => {
+            if (e.kind === 'stat' && e.target && (e.op === 'add' || e.op === 'mul')) {
+                if (e.target.startsWith('weapon.')) {
+                    const key = e.target.slice('weapon.'.length);
+                    if (e.op === 'add') {
+                        window.hypeType.weapon.setBase(key, (window.hypeType.weapon.base[key] || 0) - e.value);
+                    } else if (e.op === 'mul') {
+                        window.hypeType.weapon.setMul(key, (window.hypeType.weapon.mul[key] || 1) / e.value);
+                    }
+                }
+            } else if (e.kind === 'special') {
+                if ((e.type === 'status_tuning' || e.type === 'status_base_add') && e.path) {
+                    const [stype, skey] = e.path.split('.');
+                    if (e.type === 'status_tuning') {
+                        if (e.op === 'mul') {
+                            Enemy.statusTuning[stype][skey] = (Enemy.statusTuning[stype][skey] || 1) / e.value;
+                        } else if (e.op === 'add') {
+                            Enemy.statusTuning[stype][skey] = (Enemy.statusTuning[stype][skey] || 0) - e.value;
+                        }
+                    } else if (e.type === 'status_base_add') {
+                        if (e.op === 'mul') {
+                            Enemy.statusBase[stype][skey] = (Enemy.statusBase[stype][skey] || 0) / e.value;
+                        } else if (e.op === 'add') {
+                            Enemy.statusBase[stype][skey] = (Enemy.statusBase[stype][skey] || 0) - e.value;
+                        }
+                    }
+                }
+            }
+        });
     }
 
     applyNodeEffects(node) {
@@ -428,6 +550,98 @@ class UpgradeUI {
         // 必要に応じて他のwave関連の統合処理をここに追加可能
     }
 
+    applyExclusiveGroupStyling(card, node) {
+        const group = exclusiveGroups.get(node.exclusiveGroup);
+        if (!group) return;
+
+        // 排他的グループ内の他のアップグレードが選択されているかチェック
+        let hasSelectedInGroup = false;
+        group.forEach(nodeId => {
+            if (nodeId !== node.id && acquiredUpgrades.has(nodeId)) {
+                hasSelectedInGroup = true;
+            }
+        });
+
+        // 同じグループ内の他のアップグレードが選択されている場合、このカードを無効化
+        if (hasSelectedInGroup && !acquiredUpgrades.has(node.id)) {
+            card.classList.add('exclusive-locked');
+            // ボタンを無効化
+            const btn = card.querySelector('.btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = `BLOCKED (${node.cost || 0})`;
+                btn.title = `Another upgrade in "${node.exclusiveGroup}" group is already selected`;
+            }
+        }
+
+        // 排他的グループのメンバーであることを示すクラスを追加
+        card.classList.add('exclusive-group-member');
+        card.dataset.exclusiveGroup = node.exclusiveGroup;
+    }
+
+    applySpecialNodeStyling(card, node) {
+        // 特殊ノードの基本クラスを追加
+        card.classList.add('special-node');
+
+        // レアリティに基づいてクラスを追加
+        if (node.rarity) {
+            card.classList.add(`rarity-${node.rarity}`);
+            card.dataset.rarity = node.rarity;
+        }
+
+        // 特殊効果のクラスを追加
+        if (node.special) {
+            card.classList.add('special-effect');
+        }
+
+        // カードのサイズを大きくする
+        card.style.width = '280px'; // デフォルトより40px大きい
+        card.style.height = '140px'; // デフォルトより20px大きい
+
+        // ヘッダーとボディのサイズも調整
+        const head = card.querySelector('.head');
+        const body = card.querySelector('.body');
+        const footer = card.querySelector('.footer');
+
+        if (head) head.style.padding = '12px 14px 0 14px';
+        if (body) body.style.padding = '8px 14px 14px 14px';
+        if (footer) footer.style.padding = '10px 14px 14px 14px';
+
+        // タイトルと説明のフォントサイズを大きく
+        const title = card.querySelector('.title');
+        const icon = card.querySelector('.icon');
+        const description = card.querySelector('.body');
+
+        if (title) title.style.fontSize = '16px';
+        if (icon) icon.style.fontSize = '20px';
+        if (description) description.style.fontSize = '13px';
+
+        // ボタンのサイズも大きく
+        const btn = card.querySelector('.btn');
+        if (btn) {
+            btn.style.padding = '8px 12px';
+            btn.style.fontSize = '14px';
+        }
+
+        // ツールチップを追加
+        if (node.rarity) {
+            const rarityText = this.getRarityDisplayText(node.rarity);
+            card.title = `${node.name} (${rarityText})`;
+        } else {
+            card.title = `${node.name} (Special)`;
+        }
+    }
+
+    getRarityDisplayText(rarity) {
+        const rarityMap = {
+            'common': 'Common',
+            'rare': 'Rare',
+            'epic': 'Epic',
+            'legendary': 'Legendary'
+        };
+        return rarityMap[rarity] || rarity;
+    }
+
     // 初期ポイントを設定
     setInitialPoints(points) {
         upgradePoints = points;
@@ -447,4 +661,4 @@ const upgradeUI = new UpgradeUI();
 // グローバル参照を設定
 window.hypeType.upgradeUI = upgradeUI;
 export default upgradeUI;
-export { upgradeData, upgradePoints, acquiredUpgrades };
+export { upgradeData, upgradePoints, acquiredUpgrades, exclusiveGroups };
